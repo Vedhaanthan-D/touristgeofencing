@@ -63,7 +63,7 @@ function formatTripDetails(tripDetails) {
     try { tripDetails = JSON.parse(tripDetails); } catch { return tripDetails; }
   }
   return (
-    <div className="trip-details">
+    <div className="pa-trip-details">
       {tripDetails.destination && <div><strong>Destination:</strong> {tripDetails.destination}</div>}
       {tripDetails.startDate && <div><strong>Start Date:</strong> {new Date(tripDetails.startDate).toLocaleDateString('en-IN')}</div>}
       {tripDetails.returnDate && <div><strong>Return Date:</strong> {new Date(tripDetails.returnDate).toLocaleDateString('en-IN')}</div>}
@@ -81,9 +81,9 @@ function formatEmergencyContacts(contacts) {
   }
   if (Array.isArray(contacts)) {
     return (
-      <div className="emergency-contacts">
+      <div className="pa-emergency-contacts">
         {contacts.map((contact, index) => (
-          <div key={index} className="contact-item">
+          <div key={index} className="pa-contact-item">
             <div><strong>{contact.name}</strong></div>
             <div>{contact.phone}</div>
           </div>
@@ -107,39 +107,39 @@ function TouristCard({ tourist, index, alert }) {
   if (!tourist) return null;
 
   return (
-    <div className="tourist-card compact">
-      <div className="card-header">
-        <div className="card-number">{typeof index === 'number' ? `#${index + 1}` : ''}</div>
-        <div className="card-id">
-          <span className="id-label">DTID</span>
-          <span className="id-value">{tourist.dtid}</span>
+    <div className="pa-tourist-card compact">
+      <div className="pa-card-header">
+        <div className="pa-card-number">{typeof index === 'number' ? `#${index + 1}` : ''}</div>
+        <div className="pa-card-id">
+          <span className="pa-id-label">DTID</span>
+          <span className="pa-id-value">{tourist.dtid}</span>
         </div>
       </div>
-      <div className="card-body">
-        <div className="info-section">
+      <div className="pa-card-body">
+        <div className="pa-info-section">
           {alert && (
-            <div className="info-item full-width alert-block">
-              <div className="info-label"><span className="info-icon">⏱️</span>Alert</div>
-              <div className="info-value">
+            <div className="pa-info-item full-width alert-block">
+              <div className="pa-info-label"><span className="pa-info-icon">⏱️</span>Alert</div>
+              <div className="pa-info-value">
                 <div><strong>Time:</strong> {formatDate(alert.createdAt)}</div>
                 <div><strong>Location:</strong> {alert.latitude ?? alert?.location?.latitude ?? '-'}, {alert.longitude ?? alert?.location?.longitude ?? '-'}</div>
               </div>
             </div>
           )}
-          <div className="info-item full-width">
-            <div className="info-label"><span className="info-icon">👤</span>Tourist</div>
-            <div className="info-value">
+          <div className="pa-info-item full-width">
+            <div className="pa-info-label"><span className="pa-info-icon">👤</span>Tourist</div>
+            <div className="pa-info-value">
               <div><strong>Name:</strong> {tourist.fullName || 'N/A'}</div>
             </div>
           </div>
-          <div className="info-row">
-            <div className="info-item">
-              <div className="info-label"><span className="info-icon">📅</span>Issued</div>
-              <div className="info-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</div>
+          <div className="pa-info-row">
+            <div className="pa-info-item">
+              <div className="pa-info-label"><span className="pa-info-icon">📅</span>Issued</div>
+              <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</div>
             </div>
-            <div className="info-item">
-              <div className="info-label"><span className="info-icon">⏰</span>Return</div>
-              <div className="info-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</div>
+            <div className="pa-info-item">
+              <div className="pa-info-label"><span className="pa-info-icon">⏰</span>Return</div>
+              <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</div>
             </div>
           </div>
         </div>
@@ -246,18 +246,18 @@ export default function PanicAlerts() {
   }, [alerts, touristByDtid]);
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div className="header-content">
-          <h2 className="section-title">
-            <span className="section-icon">🚨</span>
+    <div className="pa-dashboard-container">
+      <div className="pa-dashboard-header">
+        <div className="pa-header-content">
+          <h2 className="pa-section-title">
+            <span className="pa-section-icon">🚨</span>
             Panic Alerts
           </h2>
-          <p className="section-subtitle">Live emergencies reported by tourists</p>
+          <p className="pa-section-subtitle">Live emergencies reported by tourists</p>
         </div>
-        <div className="header-actions">
-          <button className="btn" onClick={refresh} disabled={loading}>Refresh</button>
-          {lastUpdated && <div className="last-updated">Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated)}</div>}
+        <div className="pa-header-actions">
+          <button className="pa-btn" onClick={refresh} disabled={loading}>Refresh</button>
+          {lastUpdated && <div className="pa-last-updated">Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated)}</div>}
         </div>
       </div>
 
@@ -275,22 +275,22 @@ export default function PanicAlerts() {
         </div>
       )}
       {error && (
-        <div className="error-message">
-          <div className="error-icon">⚠️</div>
+        <div className="pa-error-message">
+          <div className="pa-error-icon">⚠️</div>
           <p>{error}</p>
         </div>
       )}
 
       {alerts.length === 0 && !loading ? (
-        <div className="empty-state">
-          <div className="empty-icon">🚨</div>
+        <div className="pa-empty-state">
+          <div className="pa-empty-icon">🚨</div>
           <h3>No panic alerts</h3>
           <p>No active panic alerts found.</p>
         </div>
       ) : (
-        <div className="tourists-grid">
+        <div className="pa-tourists-grid">
           {alerts.map((a, index) => (
-            <div key={a.id ?? `${a.dtid}-${index}`} className="tourist-card-wrapper">
+            <div key={a.id ?? `${a.dtid}-${index}`} className="pa-tourist-card-wrapper">
               <MemoTouristCard tourist={touristByDtid[a.dtid]} index={index} alert={a} />
             </div>
           ))}

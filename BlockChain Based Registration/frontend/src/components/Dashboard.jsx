@@ -119,8 +119,8 @@ function Dashboard() {
 
     if (loading) {
         return (
-            <div className="dashboard-container">
-                <div className="loading-container">
+            <div className="dash-container">
+                <div className="dash-loading-container">
                     <div className="spinner"></div>
                     <h3>Loading Dashboard...</h3>
                     <p>Fetching latest tourist data...</p>
@@ -131,9 +131,9 @@ function Dashboard() {
 
     if (error) {
         return (
-            <div className="dashboard-container">
-                <div className="error-container">
-                    <AlertTriangle size={48} className="error-icon" />
+            <div className="dash-container">
+                <div className="dash-error-container">
+                    <AlertTriangle size={48} className="dash-error-icon" />
                     <h3>Error Loading Dashboard</h3>
                     <p>{error}</p>
                     <button onClick={fetchTourists} className="btn btn-primary">
@@ -146,82 +146,82 @@ function Dashboard() {
     }
 
     return (
-        <div className="dashboard-container fade-in">
-            <div className="dashboard-header">
-                <div className="header-content">
-                    <h1 className="dashboard-title">Tourist Safety Dashboard</h1>
-                    <p className="dashboard-subtitle">Monitor and manage registered tourist records in real-time</p>
+        <div className="dash-container fade-in">
+            <div className="dash-header">
+                <div className="dash-header-content">
+                    <h1 className="dash-title">Tourist Safety Dashboard</h1>
+                    <p className="dash-subtitle">Monitor and manage registered tourist records in real-time</p>
                 </div>
-                <button onClick={fetchTourists} className="btn btn-outline refresh-btn">
+                <button onClick={fetchTourists} className="btn btn-outline dash-refresh-btn">
                     <RefreshCw size={20} />
                     Refresh
                 </button>
             </div>
 
             {isNewRegistration && (
-                <div className="notification-banner">
+                <div className="dash-notification-banner">
                     <CheckCircle size={20} />
                     <span>New tourist registration completed! Dashboard updated with latest data.</span>
                 </div>
             )}
 
             {/* Modern Statistics Cards */}
-            <div className="stats-grid">
-                <div className="stat-card total-card">
-                    <div className="stat-icon-wrapper">
+            <div className="dash-stats-grid">
+                <div className="dash-stat-card dash-total-card">
+                    <div className="dash-stat-icon-wrapper">
                         <Users size={32} />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-number">{stats.total}</div>
-                        <div className="stat-label">Total Tourists</div>
+                    <div className="dash-stat-content">
+                        <div className="dash-stat-number">{stats.total}</div>
+                        <div className="dash-stat-label">Total Tourists</div>
                     </div>
                 </div>
 
-                <div className="stat-card active-card">
-                    <div className="stat-icon-wrapper">
+                <div className="dash-stat-card dash-active-card">
+                    <div className="dash-stat-icon-wrapper">
                         <UserCheck size={32} />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-number">{stats.active}</div>
-                        <div className="stat-label">Active Tourists</div>
+                    <div className="dash-stat-content">
+                        <div className="dash-stat-number">{stats.active}</div>
+                        <div className="dash-stat-label">Active Tourists</div>
                     </div>
                 </div>
 
-                <div className="stat-card pending-card">
-                    <div className="stat-icon-wrapper">
+                <div className="dash-stat-card dash-pending-card">
+                    <div className="dash-stat-icon-wrapper">
                         <Clock size={32} />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-number">{stats.pending}</div>
-                        <div className="stat-label">Pending Verifications</div>
+                    <div className="dash-stat-content">
+                        <div className="dash-stat-number">{stats.pending}</div>
+                        <div className="dash-stat-label">Pending Verifications</div>
                     </div>
                 </div>
 
-                <div className="stat-card new-card">
-                    <div className="stat-icon-wrapper">
+                <div className="dash-stat-card dash-new-card">
+                    <div className="dash-stat-icon-wrapper">
                         <UserPlus size={32} />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-number">{stats.newRegistrations}</div>
-                        <div className="stat-label">New Registrations</div>
+                    <div className="dash-stat-content">
+                        <div className="dash-stat-number">{stats.newRegistrations}</div>
+                        <div className="dash-stat-label">New Registrations</div>
                     </div>
                 </div>
             </div>
 
             {/* Tourist Records Table */}
-            <div className="table-container card">
-                <div className="table-header">
+            <div className="dash-table-container card">
+                <div className="dash-table-header">
                     <h2>Registered Tourist Records</h2>
                 </div>
 
                 {tourists.length === 0 ? (
-                    <div className="empty-state">
-                        <Users size={64} className="empty-icon" />
+                    <div className="dash-empty-state">
+                        <Users size={64} className="dash-empty-icon" />
                         <h3>No Tourist Records Found</h3>
                         <p>No tourists have been registered yet. Register new tourists to see them here.</p>
                     </div>
                 ) : (
-                    <div className="table-wrapper">
+                    <div className="dash-table-wrapper">
                         <table>
                             <thead>
                                 <tr>
@@ -240,12 +240,12 @@ function Dashboard() {
                                     return (
                                         <tr key={tourist.dtid}>
                                             <td>
-                                                <span className="dtid-badge">
-                                                    {tourist.dtid.split('-')[0]}
+                                                <span className="dash-dtid-badge">
+                                                    {tourist.dtid}
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="tourist-name-cell">
+                                                <div className="dash-tourist-name-cell">
                                                     <div className="name">{tourist.fullName}</div>
                                                     <div className="travellers-count">
                                                         {tourist.numberOfTravellers} traveller{tourist.numberOfTravellers > 1 ? 's' : ''}
@@ -298,7 +298,7 @@ function Dashboard() {
                                             </td>
                                             <td>
                                                 <button 
-                                                    className="btn-icon"
+                                                    className="dash-btn-icon"
                                                     onClick={() => handleViewTourist(tourist)}
                                                     title="View Details"
                                                 >
@@ -316,61 +316,61 @@ function Dashboard() {
 
             {/* Tourist Detail Modal */}
             {selectedTourist && (
-                <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
+                <div className="dash-modal-overlay" onClick={closeModal}>
+                    <div className="dash-modal-content card" onClick={(e) => e.stopPropagation()}>
+                        <div className="dash-modal-header">
                             <h2>Tourist Details</h2>
-                            <button className="btn-icon close-btn" onClick={closeModal}>
+                            <button className="dash-btn-icon dash-close-btn" onClick={closeModal}>
                                 <XCircle size={24} />
                             </button>
                         </div>
-                        <div className="modal-body">
-                            <div className="detail-section">
+                        <div className="dash-modal-body">
+                            <div className="dash-detail-section">
                                 <h3>Personal Information</h3>
-                                <div className="detail-grid">
-                                    <div className="detail-item">
+                                <div className="dash-detail-grid">
+                                    <div className="dash-detail-item">
                                         <label>Full Name</label>
                                         <span>{selectedTourist.fullName}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Digital ID</label>
-                                        <span className="dtid-badge">{selectedTourist.dtid}</span>
+                                        <span className="dash-dtid-badge">{selectedTourist.dtid}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Age</label>
                                         <span>{selectedTourist.age} years</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Gender</label>
                                         <span>{selectedTourist.gender}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Email</label>
                                         <span>{selectedTourist.email}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Mobile</label>
                                         <span>{selectedTourist.mobileNumber}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="detail-section">
+                            <div className="dash-detail-section">
                                 <h3>Trip Information</h3>
-                                <div className="detail-grid">
-                                    <div className="detail-item">
+                                <div className="dash-detail-grid">
+                                    <div className="dash-detail-item">
                                         <label>Destination</label>
                                         <span>{selectedTourist.tripDetails?.destination || 'N/A'}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Start Date</label>
                                         <span>{selectedTourist.tripDetails?.startDate || formatDate(selectedTourist.issuedAt)}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Return Date</label>
                                         <span>{formatDate(selectedTourist.returnDate)}</span>
                                     </div>
-                                    <div className="detail-item">
+                                    <div className="dash-detail-item">
                                         <label>Number of Travellers</label>
                                         <span>{selectedTourist.numberOfTravellers}</span>
                                     </div>
@@ -378,11 +378,11 @@ function Dashboard() {
                             </div>
 
                             {selectedTourist.familyMembers && selectedTourist.familyMembers.length > 0 && (
-                                <div className="detail-section">
+                                <div className="dash-detail-section">
                                     <h3>Family Members</h3>
-                                    <div className="family-list">
+                                    <div className="dash-family-list">
                                         {selectedTourist.familyMembers.map((member, index) => (
-                                            <div key={index} className="family-member-card">
+                                            <div key={index} className="dash-family-member-card">
                                                 <p><strong>{member.name}</strong></p>
                                                 <p>{member.age} years • {member.relation}</p>
                                             </div>
@@ -392,11 +392,11 @@ function Dashboard() {
                             )}
 
                             {selectedTourist.emergencyContacts && selectedTourist.emergencyContacts.length > 0 && (
-                                <div className="detail-section">
+                                <div className="dash-detail-section">
                                     <h3>Emergency Contacts</h3>
-                                    <div className="family-list">
+                                    <div className="dash-family-list">
                                         {selectedTourist.emergencyContacts.map((contact, index) => (
-                                            <div key={index} className="family-member-card">
+                                            <div key={index} className="dash-family-member-card">
                                                 <p><strong>{contact.name}</strong></p>
                                                 <p>{contact.phone} • {contact.relation}</p>
                                             </div>

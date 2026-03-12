@@ -3,7 +3,7 @@
    ================================================ */
 
 /* Page Container */
-.dashboard-container {
+.mc-dashboard-container {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
@@ -17,7 +17,7 @@
 }
 
 /* Header */
-.dashboard-header {
+.mc-dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,20 +31,20 @@
   gap: 0.75rem;
 }
 
-.header-content {
+.mc-header-content {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.header-actions {
+.mc-header-actions {
   display: flex;
   align-items: center;
   gap: 0.875rem;
   flex-wrap: wrap;
 }
 
-.section-title {
+.mc-section-title {
   margin: 0;
   font-size: 1.375rem;
   font-weight: 700;
@@ -54,23 +54,23 @@
   gap: 0.5rem;
 }
 
-.section-icon {
+.mc-section-icon {
   margin-right: 2px;
 }
 
-.section-subtitle {
+.mc-section-subtitle {
   margin: 0;
   color: #555555;
   font-size: 0.875rem;
 }
 
-.last-updated {
+.mc-last-updated {
   color: #8B8B8B;
   font-size: 0.8rem;
 }
 
 /* Refresh Button */
-.btn {
+.mc-btn {
   appearance: none;
   background: linear-gradient(135deg, #FF8C42, #FFA65C);
   border: none;
@@ -85,16 +85,16 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.btn:hover {
+.mc-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(255, 140, 66, 0.35);
 }
 
-.btn:active {
+.mc-btn:active {
   transform: translateY(0);
 }
 
-.btn:disabled {
+.mc-btn:disabled {
   background: #FFC89A;
   cursor: not-allowed;
   box-shadow: none;
@@ -102,7 +102,7 @@
 }
 
 /* Error Message */
-.error-message {
+.mc-error-message {
   background: rgba(229, 57, 35, 0.07);
   border: 1px solid rgba(229, 57, 35, 0.25);
   border-left: 4px solid #E53935;
@@ -114,19 +114,19 @@
   color: #C62828;
 }
 
-.error-message p {
+.mc-error-message p {
   margin: 0;
   color: #C62828;
   font-size: 0.9rem;
 }
 
-.error-icon {
+.mc-error-icon {
   font-size: 1.5rem;
   flex-shrink: 0;
 }
 
 /* Empty State */
-.empty-state {
+.mc-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -139,38 +139,38 @@
   border-radius: 16px;
 }
 
-.empty-state h3 {
+.mc-empty-state h3 {
   font-size: 1.375rem;
   color: #2B2B2B;
   margin: 0;
 }
 
-.empty-state p {
+.mc-empty-state p {
   color: #6B6B6B;
   margin: 0;
   font-size: 0.9rem;
 }
 
-.empty-icon {
+.mc-empty-icon {
   font-size: 3rem;
   margin-bottom: 0.5rem;
 }
 
 /* Tourist Cards Grid */
-.tourists-grid {
+.mc-tourists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
   gap: 1.5rem;
 }
 
-.tourist-card-wrapper {
+.mc-tourist-card-wrapper {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
 /* Tourist Card */
-.tourist-card {
+.mc-tourist-card {
   background: #ffffff;
   border: 1px solid #F2E2D5;
   border-radius: 16px;
@@ -179,17 +179,17 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.tourist-card:hover {
+.mc-tourist-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 24px rgba(255, 140, 66, 0.18);
 }
 
-.tourist-card.compact .info-value div {
+.mc-tourist-card.compact .mc-info-value div {
   line-height: 1.4;
 }
 
 /* Card Header */
-.card-header {
+.mc-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -200,7 +200,7 @@
   flex-wrap: wrap;
 }
 
-.card-number {
+.mc-card-number {
   font-size: 0.75rem;
   font-weight: 600;
   color: #8B8B8B;
@@ -210,7 +210,7 @@
   flex-shrink: 0;
 }
 
-.card-id {
+.mc-card-id {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -218,7 +218,7 @@
   justify-content: flex-start;
 }
 
-.id-label {
+.mc-id-label {
   font-size: 0.7rem;
   font-weight: 600;
   color: #8B8B8B;
@@ -226,7 +226,7 @@
   letter-spacing: 0.8px;
 }
 
-.id-value {
+.mc-id-value {
   font-family: 'Courier New', monospace;
   font-size: 0.78rem;
   font-weight: 700;
@@ -273,33 +273,33 @@
 }
 
 /* Card Body */
-.card-body {
+.mc-card-body {
   padding: 1.125rem 1.25rem;
 }
 
-.info-section {
+.mc-info-section {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.info-item {
+.mc-info-item {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.info-item.full-width {
+.mc-info-item.full-width {
   width: 100%;
 }
 
-.info-row {
+.mc-info-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
-.info-label {
+.mc-info-label {
   font-size: 0.72rem;
   font-weight: 700;
   color: #777777;
@@ -310,23 +310,23 @@
   text-transform: uppercase;
 }
 
-.info-icon {
+.mc-info-icon {
   font-size: 13px;
 }
 
-.info-value {
+.mc-info-value {
   font-size: 0.875rem;
   color: #111111;
   font-weight: 400;
   line-height: 1.5;
 }
 
-.info-value div {
+.mc-info-value div {
   color: #333333;
   margin-bottom: 0.15rem;
 }
 
-.info-value strong {
+.mc-info-value strong {
   font-weight: 600;
   color: #111111;
 }
@@ -339,7 +339,7 @@
   padding: 0.875rem 1rem;
 }
 
-.alert-block .info-label {
+.alert-block .mc-info-label {
   color: #CC6A1A;
 }
 
@@ -395,13 +395,13 @@
 }
 
 /* Emergency Contacts */
-.emergency-contacts {
+.mc-emergency-contacts {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
-.contact-item {
+.mc-contact-item {
   background: rgba(255, 140, 66, 0.05);
   border: 1px solid rgba(255, 140, 66, 0.12);
   border-radius: 7px;
@@ -410,14 +410,14 @@
   color: #4B4B4B;
 }
 
-.contact-item strong {
+.mc-contact-item strong {
   display: block;
   font-weight: 600;
   color: #2B2B2B;
 }
 
 /* Trip Details */
-.trip-details {
+.mc-trip-details {
   font-size: 0.85rem;
   color: #4B4B4B;
   display: flex;
@@ -425,7 +425,7 @@
   gap: 0.2rem;
 }
 
-.trip-details strong {
+.mc-trip-details strong {
   color: #2B2B2B;
 }
 
@@ -488,21 +488,21 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .dashboard-container {
+  .mc-dashboard-container {
     padding: 1.25rem;
   }
 
-  .tourists-grid,
+  .mc-tourists-grid,
   .skeleton-grid {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-header {
+  .mc-dashboard-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .card-header {
+  .mc-card-header {
     flex-wrap: wrap;
   }
 }

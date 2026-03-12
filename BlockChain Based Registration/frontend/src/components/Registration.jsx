@@ -192,44 +192,44 @@ function Registration() {
     };
 
     return (
-        <div className="registration-container">
-            <div className="registration-header">
+        <div className="reg-registration-container">
+            <div className="reg-registration-header">
                 <div className="header-content">
-                    <h1 className="registration-title">
-                        <span className="title-icon">📝</span>
+                    <h1 className="reg-registration-title">
+                        <span className="reg-title-icon">📝</span>
                         Tourist Registration
                     </h1>
-                    <p className="registration-subtitle">Register for your Digital Tourist ID (DTID)</p>
+                    <p className="reg-registration-subtitle">Register for your Digital Tourist ID (DTID)</p>
                 </div>
             </div>
 
-            <div className="registration-main">
+            <div className="reg-registration-main">
                 {success && (
-                    <div className="success-message">
-                        <div className="success-icon">✅</div>
+                    <div className="reg-success-message">
+                        <div className="reg-success-icon">✅</div>
                         <h3>Registration Successful!</h3>
                         <p>Your Digital Tourist ID has been generated:</p>
-                        <div className="dtid-display">{success.dtid}</div>
+                        <div className="reg-dtid-display">{success.dtid}</div>
                         <p>Please save this ID for your records.</p>
                     </div>
                 )}
 
                 {error && (
-                    <div className="error-message">
-                        <div className="error-icon">⚠️</div>
+                    <div className="reg-error-message">
+                        <div className="reg-error-icon">⚠️</div>
                         <p>{error}</p>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="registration-form">
-                    <div className="form-section">
-                        <h3 className="section-title">
-                            <span className="section-icon">🪪</span>
+                <form onSubmit={handleSubmit} className="reg-registration-form">
+                    <div className="reg-form-section">
+                        <h3 className="reg-section-title">
+                            <span className="reg-section-icon">🪪</span>
                             Personal Information
                         </h3>
                         
-                        <div className="form-group">
-                            <label htmlFor="aadhaar" className="form-label">
+                        <div className="reg-form-group">
+                            <label htmlFor="aadhaar" className="reg-form-label">
                                 Aadhaar Number *
                             </label>
                             <input
@@ -239,15 +239,15 @@ function Registration() {
                                 value={formData.aadhaar}
                                 onChange={handleInputChange}
                                 placeholder="Enter 12-digit Aadhaar number"
-                                className="form-input"
+                                className="reg-form-input"
                                 maxLength="12"
                                 pattern="[0-9]{12}"
                                 required
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="fullName" className="form-label">
+                        <div className="reg-form-group">
+                            <label htmlFor="fullName" className="reg-form-label">
                                 Full Name *
                             </label>
                             <input
@@ -257,14 +257,14 @@ function Registration() {
                                 value={formData.fullName}
                                 onChange={handleInputChange}
                                 placeholder="Enter your full name"
-                                className="form-input"
+                                className="reg-form-input"
                                 required
                             />
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label htmlFor="age" className="form-label">
+                        <div className="reg-form-row">
+                            <div className="reg-form-group">
+                                <label htmlFor="age" className="reg-form-label">
                                     Age *
                                 </label>
                                 <input
@@ -274,15 +274,15 @@ function Registration() {
                                     value={formData.age}
                                     onChange={handleInputChange}
                                     placeholder="Enter age"
-                                    className="form-input"
+                                    className="reg-form-input"
                                     min="1"
                                     max="120"
                                     required
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label htmlFor="gender" className="form-label">
+                            <div className="reg-form-group">
+                                <label htmlFor="gender" className="reg-form-label">
                                     Gender *
                                 </label>
                                 <select
@@ -290,7 +290,7 @@ function Registration() {
                                     name="gender"
                                     value={formData.gender}
                                     onChange={handleInputChange}
-                                    className="form-input"
+                                    className="reg-form-input"
                                     required
                                 >
                                     <option value="">Select Gender</option>
@@ -301,9 +301,9 @@ function Registration() {
                             </div>
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label htmlFor="email" className="form-label">
+                        <div className="reg-form-row">
+                            <div className="reg-form-group">
+                                <label htmlFor="email" className="reg-form-label">
                                     Email Address *
                                 </label>
                                 <input
@@ -313,13 +313,13 @@ function Registration() {
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     placeholder="Enter email address"
-                                    className="form-input"
+                                    className="reg-form-input"
                                     required
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label htmlFor="mobileNumber" className="form-label">
+                            <div className="reg-form-group">
+                                <label htmlFor="mobileNumber" className="reg-form-label">
                                     Mobile Number *
                                 </label>
                                 <input
@@ -329,7 +329,7 @@ function Registration() {
                                     value={formData.mobileNumber}
                                     onChange={handleInputChange}
                                     placeholder="Enter 10-digit mobile number"
-                                    className="form-input"
+                                    className="reg-form-input"
                                     maxLength="10"
                                     pattern="[0-9]{10}"
                                     required
@@ -338,13 +338,13 @@ function Registration() {
                         </div>
                     </div>
 
-                    <div className="form-section">
-                        <h3 className="section-title">
-                            <span className="section-icon">👥</span>
+                    <div className="reg-form-section">
+                        <h3 className="reg-section-title">
+                            <span className="reg-section-icon">👥</span>
                             Family Members / Travel Companions
                         </h3>
                         
-                        <p className="section-description">
+                        <p className="reg-section-description">
                             Add family members or travel companions (if any). Leave empty if traveling alone.
                         </p>
 
@@ -355,43 +355,43 @@ function Registration() {
                                     <button
                                         type="button"
                                         onClick={() => removeFamilyMember(index)}
-                                        className="remove-contact-btn"
+                                        className="reg-remove-contact-btn"
                                     >
                                         Remove
                                     </button>
                                 </div>
                                 
-                                <div className="form-group">
-                                    <label className="form-label">Full Name</label>
+                                <div className="reg-form-group">
+                                    <label className="reg-form-label">Full Name</label>
                                     <input
                                         type="text"
                                         value={member.fullName}
                                         onChange={(e) => handleFamilyMemberChange(index, 'fullName', e.target.value)}
                                         placeholder="Enter full name"
-                                        className="form-input"
+                                        className="reg-form-input"
                                     />
                                 </div>
 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label className="form-label">Age</label>
+                                <div className="reg-form-row">
+                                    <div className="reg-form-group">
+                                        <label className="reg-form-label">Age</label>
                                         <input
                                             type="number"
                                             value={member.age}
                                             onChange={(e) => handleFamilyMemberChange(index, 'age', e.target.value)}
                                             placeholder="Age"
-                                            className="form-input"
+                                            className="reg-form-input"
                                             min="1"
                                             max="120"
                                         />
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label">Gender</label>
+                                    <div className="reg-form-group">
+                                        <label className="reg-form-label">Gender</label>
                                         <select
                                             value={member.gender}
                                             onChange={(e) => handleFamilyMemberChange(index, 'gender', e.target.value)}
-                                            className="form-input"
+                                            className="reg-form-input"
                                         >
                                             <option value="">Select Gender</option>
                                             <option value="Male">Male</option>
@@ -406,21 +406,21 @@ function Registration() {
                         <button
                             type="button"
                             onClick={addFamilyMember}
-                            className="add-contact-btn"
+                            className="reg-add-contact-btn"
                         >
                             <span className="btn-icon">+</span>
                             Add Family Member
                         </button>
                     </div>
 
-                    <div className="form-section">
-                        <h3 className="section-title">
-                            <span className="section-icon">✈️</span>
+                    <div className="reg-form-section">
+                        <h3 className="reg-section-title">
+                            <span className="reg-section-icon">✈️</span>
                             Trip Details
                         </h3>
                         
-                        <div className="form-group">
-                            <label htmlFor="destination" className="form-label">
+                        <div className="reg-form-group">
+                            <label htmlFor="destination" className="reg-form-label">
                                 Destination *
                             </label>
                             <input
@@ -430,13 +430,13 @@ function Registration() {
                                 value={formData.tripDetails.destination}
                                 onChange={handleInputChange}
                                 placeholder="Enter destination"
-                                className="form-input"
+                                className="reg-form-input"
                                 required
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="returnDate" className="form-label">
+                        <div className="reg-form-group">
+                            <label htmlFor="returnDate" className="reg-form-label">
                                 Return Date *
                             </label>
                             <input
@@ -445,7 +445,7 @@ function Registration() {
                                 name="trip.returnDate"
                                 value={formData.tripDetails.returnDate}
                                 onChange={handleInputChange}
-                                className="form-input"
+                                className="reg-form-input"
                                 min={new Date().toISOString().split('T')[0]}
                                 required
                             />
@@ -455,47 +455,47 @@ function Registration() {
                         </div>
                     </div>
 
-                    <div className="form-section">
-                        <h3 className="section-title">
-                            <span className="section-icon">📞</span>
+                    <div className="reg-form-section">
+                        <h3 className="reg-section-title">
+                            <span className="reg-section-icon">📞</span>
                             Emergency Contacts
                         </h3>
                         
                         {formData.emergencyContacts.map((contact, index) => (
-                            <div key={index} className="contact-group">
+                            <div key={index} className="reg-contact-group">
                                 <div className="contact-header">
                                     <h4>Contact {index + 1}</h4>
                                     {formData.emergencyContacts.length > 1 && (
                                         <button
                                             type="button"
                                             onClick={() => removeContact(index)}
-                                            className="remove-contact-btn"
+                                            className="reg-remove-contact-btn"
                                         >
                                             Remove
                                         </button>
                                     )}
                                 </div>
                                 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label className="form-label">Name</label>
+                                <div className="reg-form-row">
+                                    <div className="reg-form-group">
+                                        <label className="reg-form-label">Name</label>
                                         <input
                                             type="text"
                                             value={contact.name}
                                             onChange={(e) => handleContactChange(index, 'name', e.target.value)}
                                             placeholder="Contact name"
-                                            className="form-input"
+                                            className="reg-form-input"
                                         />
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label">Phone</label>
+                                    <div className="reg-form-group">
+                                        <label className="reg-form-label">Phone</label>
                                         <input
                                             type="tel"
                                             value={contact.phone}
                                             onChange={(e) => handleContactChange(index, 'phone', e.target.value)}
                                             placeholder="+91-XXXXXXXXXX"
-                                            className="form-input"
+                                            className="reg-form-input"
                                         />
                                     </div>
                                 </div>
@@ -505,18 +505,18 @@ function Registration() {
                         <button
                             type="button"
                             onClick={addContact}
-                            className="add-contact-btn"
+                            className="reg-add-contact-btn"
                         >
                             <span className="btn-icon">+</span>
                             Add Another Contact
                         </button>
                     </div>
 
-                    <div className="form-actions">
+                    <div className="reg-form-actions">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="submit-btn"
+                            className="reg-submit-btn"
                         >
                             {loading ? (
                                 <>

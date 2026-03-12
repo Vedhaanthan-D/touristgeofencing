@@ -3,7 +3,7 @@
    ================================================ */
 
 /* Page Container */
-.registration-container {
+.reg-registration-container {
   max-width: 860px;
   margin: 0 auto;
   padding: 2rem;
@@ -17,11 +17,11 @@
 }
 
 /* Page Header */
-.registration-header {
+.reg-registration-header {
   margin-bottom: 2rem;
 }
 
-.registration-title {
+.reg-registration-title {
   font-size: 1.875rem;
   font-weight: 700;
   color: #2B2B2B;
@@ -31,25 +31,25 @@
   gap: 0.75rem;
 }
 
-.title-icon {
+.reg-title-icon {
   font-size: 1.625rem;
 }
 
-.registration-subtitle {
+.reg-registration-subtitle {
   font-size: 0.925rem;
   color: #6B6B6B;
   margin: 0;
 }
 
 /* Main area */
-.registration-main {
+.reg-registration-main {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
 /* ---- Success Message ---- */
-.success-message {
+.reg-success-message {
   background: rgba(76, 175, 80, 0.08);
   border: 1px solid rgba(76, 175, 80, 0.25);
   border-left: 4px solid #4CAF50;
@@ -58,23 +58,23 @@
   text-align: center;
 }
 
-.success-message h3 {
+.reg-success-message h3 {
   color: #2E7D32;
   font-size: 1.25rem;
   margin: 0 0 0.5rem 0;
 }
 
-.success-message p {
+.reg-success-message p {
   color: #4B4B4B;
   margin: 0.25rem 0;
 }
 
-.success-icon {
+.reg-success-icon {
   font-size: 2.5rem;
   margin-bottom: 0.75rem;
 }
 
-.dtid-display {
+.reg-dtid-display {
   background: rgba(255, 140, 66, 0.08);
   border: 2px solid rgba(255, 140, 66, 0.3);
   border-radius: 10px;
@@ -88,7 +88,7 @@
 }
 
 /* ---- Error Message ---- */
-.error-message {
+.reg-error-message {
   background: rgba(229, 57, 35, 0.07);
   border: 1px solid rgba(229, 57, 35, 0.25);
   border-left: 4px solid #E53935;
@@ -100,19 +100,19 @@
   color: #B71C1C;
 }
 
-.error-message p {
+.reg-error-message p {
   margin: 0;
   font-size: 0.9rem;
   color: #B71C1C;
 }
 
-.error-icon {
+.reg-error-icon {
   font-size: 1.5rem;
   flex-shrink: 0;
 }
 
 /* ---- Registration Form ---- */
-.registration-form {
+.reg-registration-form {
   background: #ffffff;
   border: 1px solid #F2E2D5;
   border-radius: 20px;
@@ -121,19 +121,19 @@
 }
 
 /* Form Section */
-.form-section {
+.reg-form-section {
   margin-bottom: 2.25rem;
   padding-bottom: 2.25rem;
   border-bottom: 1px solid #FFF0E5;
 }
 
-.form-section:last-child {
+.reg-form-section:last-child {
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: none;
 }
 
-.section-title {
+.reg-section-title {
   font-size: 1.1rem;
   font-weight: 700;
   color: #2B2B2B;
@@ -145,11 +145,11 @@
   border-bottom: 2px solid #FFF0E5;
 }
 
-.section-icon {
+.reg-section-icon {
   font-size: 1.1rem;
 }
 
-.section-description {
+.reg-section-description {
   font-size: 0.875rem;
   color: #6B6B6B;
   margin: -0.75rem 0 1.25rem 0;
@@ -157,18 +157,18 @@
 }
 
 /* Form Group */
-.form-group {
+.reg-form-group {
   margin-bottom: 1.35rem;
 }
 
-.form-row {
+.reg-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
 }
 
 /* Label */
-.form-label {
+.reg-form-label {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
@@ -177,7 +177,7 @@
 }
 
 /* Input */
-.form-input {
+.reg-form-input {
   width: 100%;
   padding: 0.8rem 1rem;
   border: 2px solid #F2E2D5;
@@ -191,17 +191,17 @@
   appearance: auto;
 }
 
-.form-input:focus {
+.reg-form-input:focus {
   outline: none;
   border-color: #FF8C42;
   box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.15);
 }
 
-.form-input::placeholder {
+.reg-form-input::placeholder {
   color: #ABABAB;
 }
 
-.form-input:disabled {
+.reg-form-input:disabled {
   background: #F9F9F9;
   color: #8B8B8B;
   cursor: not-allowed;
@@ -217,7 +217,7 @@
 }
 
 /* ---- Contact Group ---- */
-.contact-group {
+.reg-contact-group {
   background: rgba(255, 140, 66, 0.04);
   border: 1px solid rgba(255, 140, 66, 0.18);
   border-radius: 12px;
@@ -225,7 +225,7 @@
   margin-bottom: 1rem;
 }
 
-.contact-group:last-child {
+.reg-contact-group:last-child {
   margin-bottom: 0;
 }
 
@@ -245,7 +245,7 @@
   color: #2B2B2B;
 }
 
-.remove-contact-btn {
+.reg-remove-contact-btn {
   background: rgba(229, 57, 35, 0.08);
   border: 1px solid rgba(229, 57, 35, 0.22);
   color: #C62828;
@@ -258,7 +258,7 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.remove-contact-btn:hover {
+.reg-remove-contact-btn:hover {
   background: rgba(229, 57, 35, 0.15);
   transform: translateY(-1px);
 }
@@ -277,7 +277,7 @@
 }
 
 /* ---- Add Button ---- */
-.add-contact-btn {
+.reg-add-contact-btn {
   background: rgba(255, 140, 66, 0.07);
   border: 2px dashed rgba(255, 140, 66, 0.35);
   color: #CC6A1A;
@@ -295,7 +295,7 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.add-contact-btn:hover {
+.reg-add-contact-btn:hover {
   background: rgba(255, 140, 66, 0.12);
   border-color: rgba(255, 140, 66, 0.55);
   transform: translateY(-2px);
@@ -307,12 +307,12 @@
 }
 
 /* ---- Form Actions ---- */
-.form-actions {
+.reg-form-actions {
   padding-top: 1.75rem;
   text-align: center;
 }
 
-.submit-btn {
+.reg-submit-btn {
   background: linear-gradient(135deg, #FF8C42, #FFA65C);
   border: none;
   color: white;
@@ -331,12 +331,12 @@
   box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
 }
 
-.submit-btn:hover:not(:disabled) {
+.reg-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(255, 140, 66, 0.35);
 }
 
-.submit-btn:disabled {
+.reg-submit-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
@@ -358,24 +358,24 @@
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .registration-container {
+  .reg-registration-container {
     padding: 1.25rem;
   }
 
-  .registration-form {
+  .reg-registration-form {
     padding: 1.5rem;
   }
 
-  .form-row {
+  .reg-form-row {
     grid-template-columns: 1fr;
     gap: 0;
   }
 
-  .registration-title {
+  .reg-registration-title {
     font-size: 1.5rem;
   }
 
-  .submit-btn {
+  .reg-submit-btn {
     width: 100%;
     min-width: auto;
   }
@@ -387,12 +387,12 @@
 }
 
 @media (max-width: 480px) {
-  .registration-form {
+  .reg-registration-form {
     padding: 1.25rem;
     border-radius: 14px;
   }
 
-  .section-title {
+  .reg-section-title {
     font-size: 1rem;
   }
 }

@@ -102,7 +102,7 @@ function formatTripDetails(tripDetails) {
     }
   }
   return (
-    <div className="trip-details">
+    <div className="mc-trip-details">
       {tripDetails.destination && (
         <div>
           <strong>Destination:</strong> {tripDetails.destination}
@@ -151,9 +151,9 @@ function formatEmergencyContacts(contacts) {
   }
   if (Array.isArray(contacts)) {
     return (
-      <div className="emergency-contacts">
+      <div className="mc-emergency-contacts">
         {contacts.map((contact, index) => (
-          <div key={index} className="contact-item">
+          <div key={index} className="mc-contact-item">
             <div>
               <strong>{contact.name}</strong>
             </div>
@@ -557,14 +557,14 @@ function TouristCard({ tourist, index, alert }) {
   if (!tourist) return null;
 
   return (
-    <div className="tourist-card compact">
-      <div className="card-header">
-        <div className="card-number">
+    <div className="mc-tourist-card compact">
+      <div className="mc-card-header">
+        <div className="mc-card-number">
           {typeof index === "number" ? `#${index + 1}` : ""}
         </div>
-        <div className="card-id">
-          <span className="id-label">DTID</span>
-          <span className="id-value">{tourist.dtid}</span>
+        <div className="mc-card-id">
+          <span className="mc-id-label">DTID</span>
+          <span className="mc-id-value">{tourist.dtid}</span>
         </div>
         <button
           className="download-btn"
@@ -575,14 +575,14 @@ function TouristCard({ tourist, index, alert }) {
           📄 Download E-FIR
         </button>
       </div>
-      <div className="card-body">
-        <div className="info-section">
+      <div className="mc-card-body">
+        <div className="mc-info-section">
           {alert && (
-            <div className="info-item full-width alert-block">
-              <div className="info-label">
-                <span className="info-icon">⏱️</span>Alert
+            <div className="mc-info-item full-width alert-block">
+              <div className="mc-info-label">
+                <span className="mc-info-icon">⏱️</span>Alert
               </div>
-              <div className="info-value">
+              <div className="mc-info-value">
                 <div>
                   <strong>Time:</strong> {formatDate(alert.createdAt)}
                 </div>
@@ -608,11 +608,11 @@ function TouristCard({ tourist, index, alert }) {
               </div>
             </div>
           )}
-          <div className="info-item full-width">
-            <div className="info-label">
-              <span className="info-icon">👤</span>Tourist
+          <div className="mc-info-item full-width">
+            <div className="mc-info-label">
+              <span className="mc-info-icon">👤</span>Tourist
             </div>
-            <div className="info-value">
+            <div className="mc-info-value">
               <div>
                 <strong>Name:</strong> {tourist.fullName || "N/A"}
               </div>
@@ -627,21 +627,21 @@ function TouristCard({ tourist, index, alert }) {
               )}
             </div>
           </div>
-          <div className="info-row">
-            <div className="info-item">
-              <div className="info-label">
-                <span className="info-icon">📅</span>Issued
+          <div className="mc-info-row">
+            <div className="mc-info-item">
+              <div className="mc-info-label">
+                <span className="mc-info-icon">📅</span>Issued
               </div>
-              <div className="info-value">
+              <div className="mc-info-value">
                 {formatUnixSecondsToLocale(tourist.issuedAt)}
               </div>
             </div>
             {tourist.familyMembers && tourist.familyMembers.length > 0 && (
-              <div className="info-item full-width">
-                <div className="info-label">
-                  <span className="info-icon">👨‍👩‍👧‍👦</span>Family Members
+              <div className="mc-info-item full-width">
+                <div className="mc-info-label">
+                  <span className="mc-info-icon">👨‍👩‍👧‍👦</span>Family Members
                 </div>
-                <div className="info-value">
+                <div className="mc-info-value">
                   <div className="family-members">
                     {tourist.familyMembers.map((member, index) => (
                       <div key={index} className="family-member">
@@ -653,11 +653,11 @@ function TouristCard({ tourist, index, alert }) {
                 </div>
               </div>
             )}
-            <div className="info-item">
-              <div className="info-label">
-                <span className="info-icon">⏰</span>Return
+            <div className="mc-info-item">
+              <div className="mc-info-label">
+                <span className="mc-info-icon">⏰</span>Return
               </div>
-              <div className="info-value">
+              <div className="mc-info-value">
                 {formatUnixSecondsToLocale(
                   tourist.returnDate || tourist.validTill
                 )}
@@ -665,11 +665,11 @@ function TouristCard({ tourist, index, alert }) {
             </div>
           </div>
           {tourist.emergencyContacts && (
-            <div className="info-item full-width">
-              <div className="info-label">
-                <span className="info-icon">📞</span>Emergency Contacts
+            <div className="mc-info-item full-width">
+              <div className="mc-info-label">
+                <span className="mc-info-icon">📞</span>Emergency Contacts
               </div>
-              <div className="info-value">
+              <div className="mc-info-value">
                 {formatEmergencyContacts(tourist.emergencyContacts)}
               </div>
             </div>
@@ -795,23 +795,23 @@ export default function MissingComplaints() {
   }, [items, touristByDtid]);
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div className="header-content">
-          <h2 className="section-title">
-            <span className="section-icon">🆘</span>
+    <div className="mc-dashboard-container">
+      <div className="mc-dashboard-header">
+        <div className="mc-header-content">
+          <h2 className="mc-section-title">
+            <span className="mc-section-icon">🆘</span>
             Auto E-FIR Generation
           </h2>
-          <p className="section-subtitle">
+          <p className="mc-section-subtitle">
             Missing tourists - Automated E-FIR PDF generation
           </p>
         </div>
-        <div className="header-actions">
-          <button className="btn" onClick={refresh} disabled={loading}>
+        <div className="mc-header-actions">
+          <button className="mc-btn" onClick={refresh} disabled={loading}>
             Refresh
           </button>
           {lastUpdated && (
-            <div className="last-updated">
+            <div className="mc-last-updated">
               Updated{" "}
               {new Intl.DateTimeFormat("en-IN", {
                 hour: "2-digit",
@@ -839,24 +839,24 @@ export default function MissingComplaints() {
         </div>
       )}
       {error && (
-        <div className="error-message">
-          <div className="error-icon">⚠️</div>
+        <div className="mc-error-message">
+          <div className="mc-error-icon">⚠️</div>
           <p>{error}</p>
         </div>
       )}
 
       {items.length === 0 && !loading ? (
-        <div className="empty-state">
-          <div className="empty-icon">📄</div>
+        <div className="mc-empty-state">
+          <div className="mc-empty-icon">📄</div>
           <h3>No E-FIR Cases</h3>
           <p>No missing tourist cases requiring E-FIR generation.</p>
         </div>
       ) : (
-        <div className="tourists-grid">
+        <div className="mc-tourists-grid">
           {items.map((a, index) => (
             <div
               key={a.id ?? `${a.dtid}-${index}`}
-              className="tourist-card-wrapper"
+              className="mc-tourist-card-wrapper"
             >
               <MemoTouristCard
                 tourist={touristByDtid[a.dtid]}

@@ -81,14 +81,14 @@
 }
 
 /* Grid */
-.tourists-grid {
+.tl-tourists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1.5rem;
 }
 
 /* Tourist Card */
-.tourist-card {
+.tl-tourist-card {
   background: #ffffff;
   border: 1px solid #F2E2D5;
   border-radius: 16px;
@@ -98,14 +98,14 @@
   animation: fadeIn 0.35s ease-out;
 }
 
-.tourist-card:hover {
+.tl-tourist-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 15px 30px -5px rgba(255, 140, 66, 0.2);
   border-color: rgba(255, 140, 66, 0.35);
 }
 
 /* Card Header */
-.card-header {
+.tl-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -152,33 +152,33 @@
 }
 
 /* Card Body */
-.card-body {
+.tl-card-body {
   padding: 1.25rem;
 }
 
-.info-section {
+.tl-info-section {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
 }
 
-.info-row {
+.tl-info-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.875rem;
 }
 
-.info-item {
+.tl-info-item {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.info-item.full-width {
+.tl-info-item.full-width {
   grid-column: 1 / -1;
 }
 
-.info-label {
+.tl-info-label {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -189,23 +189,23 @@
   letter-spacing: 0.6px;
 }
 
-.info-icon {
+.tl-info-icon {
   font-size: 14px;
 }
 
-.info-value {
+.tl-info-value {
   font-size: 0.875rem;
   color: #111111;
   font-weight: 400;
   line-height: 1.5;
 }
 
-.info-value strong {
+.tl-info-value strong {
   font-weight: 600;
   color: #111111;
 }
 
-.info-value div {
+.tl-info-value div {
   margin-bottom: 0.2rem;
   color: #333333;
 }
@@ -426,11 +426,11 @@
     padding: 1.25rem;
   }
 
-  .tourists-grid {
+  .tl-tourists-grid {
     grid-template-columns: 1fr;
   }
 
-  .info-row {
+  .tl-info-row {
     grid-template-columns: 1fr;
   }
 

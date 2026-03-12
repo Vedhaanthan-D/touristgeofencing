@@ -145,10 +145,10 @@ function TouristList() {
                     <p>Try another DTID or clear the search.</p>
                 </div>
             ) : (
-                <div className="tourists-grid">
+                <div className="tl-tourists-grid">
                     {filteredTourists.map((tourist, index) => (
-                        <div key={tourist._id} className="tourist-card">
-                            <div className="card-header">
+                        <div key={tourist._id} className="tl-tourist-card">
+                            <div className="tl-card-header">
                                 <div className="card-number">#{index + 1}</div>
                                 <div className="card-id">
                                     <span className="id-label">DTID</span>
@@ -156,14 +156,14 @@ function TouristList() {
                                 </div>
                             </div>
 
-                            <div className="card-body">
-                                <div className="info-section">
-                                    <div className="info-item full-width">
-                                        <div className="info-label">
-                                            <span className="info-icon">👤</span>
+                            <div className="tl-card-body">
+                                <div className="tl-info-section">
+                                    <div className="tl-info-item full-width">
+                                        <div className="tl-info-label">
+                                            <span className="tl-info-icon">👤</span>
                                             Personal Information
                                         </div>
-                                        <div className="info-value">
+                                        <div className="tl-info-value">
                                             <div><strong>Name:</strong> {tourist.fullName || 'N/A'}</div>
                                             <div><strong>Age:</strong> {tourist.age || 'N/A'}</div>
                                             <div><strong>Gender:</strong> {tourist.gender || 'N/A'}</div>
@@ -173,21 +173,21 @@ function TouristList() {
                                         </div>
                                     </div>
 
-                                    <div className="info-item">
-                                        <div className="info-label">
-                                            <span className="info-icon">🆔</span>
+                                    <div className="tl-info-item">
+                                        <div className="tl-info-label">
+                                            <span className="tl-info-icon">🆔</span>
                                             Tourist ID (DTID)
                                         </div>
-                                        <div className="info-value document-id">{tourist.dtid}</div>
+                                        <div className="tl-info-value document-id">{tourist.dtid}</div>
                                     </div>
 
                                     {tourist.familyMembers && tourist.familyMembers.length > 0 && (
-                                        <div className="info-item full-width">
-                                            <div className="info-label">
-                                                <span className="info-icon">👥</span>
+                                        <div className="tl-info-item full-width">
+                                            <div className="tl-info-label">
+                                                <span className="tl-info-icon">👥</span>
                                                 Family Members ({tourist.numberOfTravellers || tourist.familyMembers.length + 1} total travelers)
                                             </div>
-                                            <div className="info-value">
+                                            <div className="tl-info-value">
                                                 {tourist.familyMembers.map((member, index) => (
                                                     <div key={index} className="family-member-item">
                                                         <strong>{member.fullName}</strong> - Age: {member.age}, Gender: {member.gender}
@@ -197,41 +197,41 @@ function TouristList() {
                                         </div>
                                     )}
 
-                                    <div className="info-item full-width">
-                                        <div className="info-label">
-                                            <span className="info-icon">✈️</span>
+                                    <div className="tl-info-item full-width">
+                                        <div className="tl-info-label">
+                                            <span className="tl-info-icon">✈️</span>
                                             Trip Details
                                         </div>
-                                        <div className="info-value">
+                                        <div className="tl-info-value">
                                             {formatTripDetails(tourist.tripDetails)}
                                         </div>
                                     </div>
 
-                                    <div className="info-item full-width">
-                                        <div className="info-label">
-                                            <span className="info-icon">📞</span>
+                                    <div className="tl-info-item full-width">
+                                        <div className="tl-info-label">
+                                            <span className="tl-info-icon">📞</span>
                                             Emergency Contacts
                                         </div>
-                                        <div className="info-value">
+                                        <div className="tl-info-value">
                                             {formatEmergencyContacts(tourist.emergencyContacts)}
                                         </div>
                                     </div>
 
-                                    <div className="info-row">
-                                        <div className="info-item">
-                                            <div className="info-label">
-                                                <span className="info-icon">📅</span>
+                                    <div className="tl-info-row">
+                                        <div className="tl-info-item">
+                                            <div className="tl-info-label">
+                                                <span className="tl-info-icon">📅</span>
                                                 Issued At
                                             </div>
-                                            <div className="info-value">{formatDate(tourist.issuedAt)}</div>
+                                            <div className="tl-info-value">{formatDate(tourist.issuedAt)}</div>
                                         </div>
 
-                                        <div className="info-item">
-                                            <div className="info-label">
-                                                <span className="info-icon">⏰</span>
+                                        <div className="tl-info-item">
+                                            <div className="tl-info-label">
+                                                <span className="tl-info-icon">⏰</span>
                                                 Return Date
                                             </div>
-                                            <div className="info-value">{formatDate(tourist.returnDate || tourist.validTill)}</div>
+                                            <div className="tl-info-value">{formatDate(tourist.returnDate || tourist.validTill)}</div>
                                         </div>
                                     </div>
                                 </div>
