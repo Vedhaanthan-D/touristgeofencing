@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables - DO NOT COMMIT
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+*.log
+logs/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Blockchain artifacts (not needed for deployment)
+blockchain/
+
+# Private keys and certificates
+*.pem
+*.key
+firebase-service-account.json
