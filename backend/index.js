@@ -106,22 +106,22 @@ app.post('/api/register', async (req, res) => {
             // Do not fail registration due to auth sync issues; client can retry sign-in
         }
 
-        // Return success with blockchain transaction details
+        // Return success response (without blockchain)
         res.json({ 
             dtid, 
             status: 'success',
-            blockchain: {
-                transactionHash: blockchainResult.transactionHash,
-                blockNumber: blockchainResult.blockNumber,
-                explorerUrresponse
-        res.json({ 
-            dtid, 
-            status: 'success',
-            message: 'Tourist registered successfully
-        if (err.message.includes('MATIC')) {
-            errorMessage = 'Blockchain transaction failed due to insufficient gas. Please contact administrator.';
+            message: 'Tourist registered successfully without blockchain'
+        });
+
+    } catch (err) {
+        console.error('Registration error:', err);
+        const errorMessage = err.message || 'Registration failed. Please try again.';
         res.status(500).json({ 
-            error: err.message || 'Registration failed. Please try again.'
+            error: errorMessage
+        });
+    }
+});
+
 const updateTouristStatus = async (tourist) => {
     const currentTime = Math.floor(Date.now() / 1000);
     if (currentTime > tourist.returnDate && tourist.isActive) {
@@ -136,6 +136,13 @@ app.get('/api/tourists', async (req, res) => {
         
         // Update status for each tourist
         const updatedData = await Promise.all(
+            data.map(tourist => updateTouristStatus(tourist))
+        );
+        
+        res.json(updatedData);
+    } catch (err) {
+        console.error('Error fetching tourists:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
