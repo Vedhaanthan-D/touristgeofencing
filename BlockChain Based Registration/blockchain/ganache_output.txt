@@ -1,0 +1,75 @@
+ganache v7.9.2 (@ganache/cli: 0.10.2, @ganache/core: 0.10.2)
+Starting RPC server
+
+Available Accounts
+==================
+(0) 0x5096D55f88D4d1871d4cF1433a72c0Ef2cF5d2b2 (1000 ETH)
+(1) 0xdafd27aD67a22Adf6a716892cb1168055ad59cCE (1000 ETH)
+(2) 0xdA6Ba728e095998AD619727d7387944528eBed81 (1000 ETH)
+(3) 0x33593A206538091Da063Ff1A197f4A57a8C41e82 (1000 ETH)
+(4) 0x0D338c767Cb677bD068894BF3E4B68751D2d8139 (1000 ETH)
+(5) 0x6916D1ffa21A184596565Ce2A185D60F46eB152C (1000 ETH)
+(6) 0xD7865B96940aFFcFf1bFbE266855054E600b6aA5 (1000 ETH)
+(7) 0x425B9e0Fd2d916bA91eb765fc750d091f647b710 (1000 ETH)
+(8) 0xd4ae3b509B63Cafe381A44aFF9BAb54583Db2e75 (1000 ETH)
+(9) 0xD34576D3b26d4EA9d539A4575fce0fF6D464a0E7 (1000 ETH)
+
+Private Keys
+==================
+(0) 0xec13fa69c77c9a635312cc9afea352c02bc82a0f924b5834dc7d1b2746526563
+(1) 0x0bee85bf9b4cb7e97b20e7e8cd52257d430710ba095347c4473835ccf2f7acb5
+(2) 0xee5e77827bb49d7eccea010fc14a601a007f69a8b66489c9458298791a5cad36
+(3) 0xba08e5d2c907cca99c0f0e6f2032fb1d1d01ce306a6243b64436a7f2706c694e
+(4) 0x8e11480eb37f13de41d83c1343a54c781edef095ce9766b317cf5493e30bdddc
+(5) 0xf6ac268b980e5149aeb9100da2e3dd151ac52d16e4e4548e49f16d249b1386f3
+(6) 0x9fc0d91cf15f57302e3403cb3965e8b0594137506dda1e026c40b3be8feae366
+(7) 0xac53590adb3b47f2c2feeb4d2a84ca1d66a4fc5ee160eaf44df7da6545169401
+(8) 0xc4ba2b70d2135336fb5126f8972f8b438d21788f65676b686e1c8dc134b0fd24
+(9) 0x59bb9dfca4ebde8fa04b3b39fe67af607bf14ac42bc95d0d4d4c40b07054034c
+
+HD Wallet
+==================
+Mnemonic:      creek impose spike suspect own sing rapid chunk blade kidney good enemy
+Base HD Path:  m/44'/60'/0'/0/{account_index}
+
+Default Gas Price
+==================
+2000000000
+
+BlockGas Limit
+==================
+30000000
+
+Call Gas Limit
+==================
+50000000
+
+Chain
+==================
+Hardfork: shanghai
+Id:       1337
+
+RPC Listening on 127.0.0.1:8545
+eth_accounts
+eth_chainId
+eth_accounts
+eth_blockNumber
+eth_chainId
+eth_chainId
+eth_estimateGas
+eth_getBlockByNumber
+eth_feeHistory
+eth_maxPriorityFeePerGas
+eth_sendTransaction
+
+  Transaction: 0x0f0f277a0cdef47abc31c3c5b505e672c80ca9fc8f3cc732ee3d729609350519
+  Contract created: 0x57fec0ef0e2906c5ce3f6717de34086f563563be
+  Gas usage: 997293
+  Block number: 1
+  Block time: Fri Oct 03 2025 22:06:26 GMT+0530 (India Standard Time)
+
+eth_chainId
+eth_getTransactionByHash
+eth_chainId
+eth_getTransactionReceipt
+eth_chainId
