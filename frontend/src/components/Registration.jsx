@@ -257,7 +257,7 @@ function Registration() {
                                 required
                             />
                             <a href="#" className="reg-scan-link" onClick={(e) => e.preventDefault()}>
-                                Click here to scan the document
+                                Click here to scan the QR code
                             </a>
                         </div>
 
