@@ -214,6 +214,23 @@
   cursor: not-allowed;
 }
 
+/* Scan link */
+.reg-scan-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.reg-scan-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
 /* Form Help Text */
 .form-help {
   display: block;

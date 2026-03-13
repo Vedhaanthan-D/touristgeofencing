@@ -3,7 +3,7 @@ const { db } = require('../firebase-config');
 class Tourist {
     constructor(data) {
         this.dtid = data.dtid;
-        this.aadhaar = data.aadhaar;
+        this['aadhaar/passport'] = data.aadhaar || data['aadhaar/passport'];
         this.fullName = data.fullName;
         this.age = data.age;
         this.gender = data.gender;
@@ -23,7 +23,7 @@ class Tourist {
         try {
             await db.collection('tourists').doc(this.dtid).set({
                 dtid: this.dtid,
-                aadhaar: this.aadhaar,
+                'aadhaar/passport': this['aadhaar/passport'],
                 fullName: this.fullName,
                 age: this.age,
                 gender: this.gender,

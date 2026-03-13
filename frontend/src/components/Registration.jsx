@@ -92,38 +92,52 @@ function Registration() {
     };
 
     const validateForm = () => {
-        if (!formData.aadhaar || formData.aadhaar.length !== 12) {
-            return 'Please enter a valid 12-digit Aadhaar number';
+        // Aadhaar: exactly 12 digits / Passport: 6-9 alphanumeric chars
+        const aadhaarRegex = /^\d{12}$/;
+        const passportRegex = /^[A-Z0-9]{6,9}$/i;
+        if (!formData.aadhaar) {
+            return 'Please enter your Aadhar or Passport number';
         }
-        if (!formData.fullName) {
-            return 'Please enter your full name';
+        if (!aadhaarRegex.test(formData.aadhaar) && !passportRegex.test(formData.aadhaar)) {
+            return 'Enter a valid Aadhaar (12 digits) or Passport number (6–9 alphanumeric characters)';
         }
-        if (!formData.age || formData.age < 1 || formData.age > 120) {
-            return 'Please enter a valid age';
+        if (!formData.fullName || formData.fullName.trim().length < 2) {
+            return 'Please enter your full name (at least 2 characters)';
+        }
+        if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
+            return 'Full name should contain only letters';
+        }
+        if (!formData.age || isNaN(formData.age) || formData.age < 1 || formData.age > 120) {
+            return 'Please enter a valid age (1–120)';
         }
         if (!formData.gender) {
-            return 'Please select gender';
+            return 'Please select your gender';
         }
-        if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+        if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             return 'Please enter a valid email address';
         }
-        if (!formData.mobileNumber || formData.mobileNumber.length !== 10) {
-            return 'Please enter a valid 10-digit mobile number';
+        if (!formData.mobileNumber || !/^\d{10}$/.test(formData.mobileNumber)) {
+            return 'Please enter a valid 10-digit mobile number (digits only)';
         }
-        if (!formData.tripDetails.destination) {
-            return 'Please enter destination';
+        if (!formData.tripDetails.destination || formData.tripDetails.destination.trim().length < 2) {
+            return 'Please enter a valid destination';
         }
         if (!formData.tripDetails.returnDate) {
-            return 'Please enter return date';
+            return 'Please enter a return date';
         }
         if (new Date(formData.tripDetails.returnDate) <= new Date()) {
             return 'Return date must be in the future';
         }
-        const validContacts = formData.emergencyContacts.filter(contact => 
+        const validContacts = formData.emergencyContacts.filter(contact =>
             contact.name && contact.phone
         );
         if (validContacts.length === 0) {
-            return 'Please add at least one emergency contact';
+            return 'Please add at least one emergency contact with name and phone';
+        }
+        for (const contact of validContacts) {
+            if (!/^\+?\d{7,15}$/.test(contact.phone.replace(/\s/g, ''))) {
+                return `Emergency contact "${contact.name}" has an invalid phone number`;
+            }
         }
         return null;
     };
@@ -148,7 +162,7 @@ function Registration() {
             );
 
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/register`, {
-                aadhaar: formData.aadhaar,
+        aadhaar: formData.aadhaar,
                 fullName: formData.fullName,
                 age: parseInt(formData.age),
                 gender: formData.gender,
@@ -230,7 +244,7 @@ function Registration() {
                         
                         <div className="reg-form-group">
                             <label htmlFor="aadhaar" className="reg-form-label">
-                                Aadhaar Number *
+                                Aadhar Number/Passport Number *
                             </label>
                             <input
                                 type="text"
@@ -238,12 +252,13 @@ function Registration() {
                                 name="aadhaar"
                                 value={formData.aadhaar}
                                 onChange={handleInputChange}
-                                placeholder="Enter 12-digit Aadhaar number"
+                                placeholder="Enter Aadhar or Passport Number"
                                 className="reg-form-input"
-                                maxLength="12"
-                                pattern="[0-9]{12}"
                                 required
                             />
+                            <a href="#" className="reg-scan-link" onClick={(e) => e.preventDefault()}>
+                                Click here to scan the document
+                            </a>
                         </div>
 
                         <div className="reg-form-group">

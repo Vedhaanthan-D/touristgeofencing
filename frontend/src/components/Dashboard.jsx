@@ -163,6 +163,20 @@ function Dashboard() {
                 </button>
             </div>
 
+            {/* Google Map */}
+            <div className="dash-map-container">
+                <iframe
+                    title="Google Map"
+                    src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d15000000!2d80!3d20!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                    width="100%"
+                    height="400"
+                    style={{ border: 0, borderRadius: '12px' }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+            </div>
+
             {isNewRegistration && (
                 <div className="dash-notification-banner">
                     <ShieldCheck size={20} />
@@ -319,96 +333,134 @@ function Dashboard() {
                 )}
             </div>
 
-            {/* Tourist Detail Modal */}
+            {/* Tourist Detail Drawer */}
             {selectedTourist && (
-                <div className="dash-modal-overlay" onClick={closeModal}>
-                    <div className="dash-modal-content card" onClick={(e) => e.stopPropagation()}>
-                        <div className="dash-modal-header">
-                            <h2>Tourist Details</h2>
-                            <button className="dash-btn-icon dash-close-btn" onClick={closeModal}>
-                                <XCircle size={24} />
+                <div className="drawer-overlay" onClick={closeModal}>
+                    <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+
+                        {/* Drawer Header */}
+                        <div className="drawer-header">
+                            <div className="drawer-avatar">
+                                {(selectedTourist.fullName || 'T').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="drawer-header-info">
+                                <h2>{selectedTourist.fullName || 'Tourist'}</h2>
+                                <span className={`drawer-status-badge ${getTouristStatus(selectedTourist)}`}>
+                                    {getTouristStatus(selectedTourist) === 'active' ? '🟢 Active' :
+                                     getTouristStatus(selectedTourist) === 'returned' ? '🔵 Returned' :
+                                     getTouristStatus(selectedTourist) === 'overdue' ? '🔴 Overdue' : '🟡 Returning Soon'}
+                                </span>
+                            </div>
+                            <button className="drawer-close" onClick={closeModal}>
+                                <X size={20} />
                             </button>
                         </div>
-                        <div className="dash-modal-body">
-                            <div className="dash-detail-section">
-                                <h3>Personal Information</h3>
-                                <div className="dash-detail-grid">
-                                    <div className="dash-detail-item">
-                                        <label>Full Name</label>
-                                        <span>{selectedTourist.fullName}</span>
+
+                        {/* DTID Badge */}
+                        <div className="drawer-dtid-row">
+                            <span className="drawer-dtid-label">DTID</span>
+                            <span className="drawer-dtid-value">{selectedTourist.dtid}</span>
+                        </div>
+
+                        {/* Scrollable Body */}
+                        <div className="drawer-body">
+
+                            {/* Personal Info */}
+                            <div className="drawer-section">
+                                <div className="drawer-section-title">
+                                    <span className="drawer-section-icon">👤</span> Personal Info
+                                </div>
+                                <div className="drawer-rows">
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Age</span>
+                                        <span className="drawer-row-value">{selectedTourist.age ? `${selectedTourist.age} yrs` : 'N/A'}</span>
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Digital ID</label>
-                                        <span className="dash-dtid-badge">{selectedTourist.dtid}</span>
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Gender</span>
+                                        <span className="drawer-row-value">{selectedTourist.gender || 'N/A'}</span>
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Age</label>
-                                        <span>{selectedTourist.age} years</span>
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Mobile</span>
+                                        <span className="drawer-row-value">{selectedTourist.mobileNumber || 'N/A'}</span>
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Gender</label>
-                                        <span>{selectedTourist.gender}</span>
-                                    </div>
-                                    <div className="dash-detail-item">
-                                        <label>Email</label>
-                                        <span>{selectedTourist.email}</span>
-                                    </div>
-                                    <div className="dash-detail-item">
-                                        <label>Mobile</label>
-                                        <span>{selectedTourist.mobileNumber}</span>
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Email</span>
+                                        <span className="drawer-row-value drawer-row-value--break">{selectedTourist.email || 'N/A'}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="dash-detail-section">
-                                <h3>Trip Information</h3>
-                                <div className="dash-detail-grid">
-                                    <div className="dash-detail-item">
-                                        <label>Destination</label>
-                                        <span>{selectedTourist.tripDetails?.destination || 'N/A'}</span>
+                            {/* Trip Info */}
+                            <div className="drawer-section">
+                                <div className="drawer-section-title">
+                                    <span className="drawer-section-icon">✈️</span> Trip Details
+                                </div>
+                                <div className="drawer-highlight-box">
+                                    <div className="drawer-destination">
+                                        <MapPin size={16} />
+                                        {selectedTourist.tripDetails?.destination || 'N/A'}
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Start Date</label>
-                                        <span>{selectedTourist.tripDetails?.startDate || formatDate(selectedTourist.issuedAt)}</span>
+                                </div>
+                                <div className="drawer-rows">
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Check-in</span>
+                                        <span className="drawer-row-value">{selectedTourist.tripDetails?.startDate || formatDate(selectedTourist.issuedAt)}</span>
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Return Date</label>
-                                        <span>{formatDate(selectedTourist.returnDate)}</span>
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Check-out</span>
+                                        <span className="drawer-row-value">{formatDate(selectedTourist.returnDate)}</span>
                                     </div>
-                                    <div className="dash-detail-item">
-                                        <label>Number of Travellers</label>
-                                        <span>{selectedTourist.numberOfTravellers}</span>
+                                    <div className="drawer-row">
+                                        <span className="drawer-row-label">Travellers</span>
+                                        <span className="drawer-row-value">{selectedTourist.numberOfTravellers}</span>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Family Members */}
                             {selectedTourist.familyMembers && selectedTourist.familyMembers.length > 0 && (
-                                <div className="dash-detail-section">
-                                    <h3>Family Members</h3>
-                                    <div className="dash-family-list">
+                                <div className="drawer-section">
+                                    <div className="drawer-section-title">
+                                        <span className="drawer-section-icon">👥</span> Family Members
+                                    </div>
+                                    <div className="drawer-cards-list">
                                         {selectedTourist.familyMembers.map((member, index) => (
-                                            <div key={index} className="dash-family-member-card">
-                                                <p><strong>{member.name}</strong></p>
-                                                <p>{member.age} years • {member.relation}</p>
+                                            <div key={index} className="drawer-person-card">
+                                                <div className="drawer-person-avatar">
+                                                    {(member.fullName || member.name || 'M').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="drawer-person-name">{member.fullName || member.name || 'Member'}</div>
+                                                    <div className="drawer-person-meta">{member.age ? `${member.age} yrs` : ''}{member.gender ? ` • ${member.gender}` : ''}</div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
+                            {/* Emergency Contacts */}
                             {selectedTourist.emergencyContacts && selectedTourist.emergencyContacts.length > 0 && (
-                                <div className="dash-detail-section">
-                                    <h3>Emergency Contacts</h3>
-                                    <div className="dash-family-list">
+                                <div className="drawer-section">
+                                    <div className="drawer-section-title">
+                                        <span className="drawer-section-icon">📞</span> Emergency Contacts
+                                    </div>
+                                    <div className="drawer-cards-list">
                                         {selectedTourist.emergencyContacts.map((contact, index) => (
-                                            <div key={index} className="dash-family-member-card">
-                                                <p><strong>{contact.name}</strong></p>
-                                                <p>{contact.phone} • {contact.relation}</p>
+                                            <div key={index} className="drawer-person-card">
+                                                <div className="drawer-person-avatar drawer-person-avatar--red">
+                                                    {(contact.name || 'C').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="drawer-person-name">{contact.name || 'Contact'}</div>
+                                                    <div className="drawer-person-meta">{contact.phone}{contact.relation ? ` • ${contact.relation}` : ''}</div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
+
                         </div>
                     </div>
                 </div>

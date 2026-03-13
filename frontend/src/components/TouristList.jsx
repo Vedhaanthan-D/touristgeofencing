@@ -115,12 +115,12 @@ function TouristList() {
     }
 
     return (
-        <div className="main-content">
+        <div className="tl-main-content">
             {/* Page Header + Search */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="tl-header">
                 <div>
                     <h1 className="tl-page-title">
-                        <Users size={28} color="#2563EB" />
+                        <Users size={26} color="#2563EB" />
                         Tourist Records
                     </h1>
                     <p className="tl-page-subtitle">Browse and search all registered tourist profiles</p>
@@ -145,112 +145,64 @@ function TouristList() {
                     <p>Try another DTID or clear the search.</p>
                 </div>
             ) : (
-                <div className="tl-tourists-grid">
-                    {filteredTourists.map((tourist, index) => (
-                        <div key={tourist._id} className="tl-tourist-card">
-                            <div className="tl-card-header">
-                                <div className="card-number">#{index + 1}</div>
-                                <div className="card-id">
-                                    <span className="id-label">DTID</span>
-                                    <span className="id-value tl-dtid-pill">{tourist.dtid}</span>
+                <div className="tl-cards-grid">
+                    {filteredTourists.map((tourist, index) => {
+                        const active = isValidTouristId(tourist);
+                        return (
+                            <div key={tourist.dtid || index} className="tl-card">
+                                {/* Card Top */}
+                                <div className="tl-card-top">
+                                    <div className="tl-card-avatar">
+                                        {(tourist.fullName || 'T').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="tl-card-top-info">
+                                        <div className="tl-card-name">{tourist.fullName || 'N/A'}</div>
+                                        <div className="tl-card-meta">
+                                            {tourist.age ? `${tourist.age} yrs` : ''}
+                                            {tourist.gender ? ` • ${tourist.gender}` : ''}
+                                            {tourist.numberOfTravellers ? ` • ${tourist.numberOfTravellers} traveller${tourist.numberOfTravellers > 1 ? 's' : ''}` : ''}
+                                        </div>
+                                    </div>
+                                    <span className={`tl-status-pill ${active ? 'active' : 'inactive'}`}>
+                                        {active ? '🟢 Active' : '🔴 Inactive'}
+                                    </span>
                                 </div>
+
+                                {/* DTID */}
+                                <div className="tl-card-dtid">
+                                    <span className="tl-dtid-label">DTID</span>
+                                    <span className="tl-dtid-val">{tourist.dtid}</span>
+                                </div>
+
+                                {/* Details */}
+                                <div className="tl-card-details">
+                                    <div className="tl-card-row">
+                                        <span className="tl-card-row-icon">📍</span>
+                                        <span className="tl-card-row-label">Destination</span>
+                                        <span className="tl-card-row-val">{tourist.tripDetails?.destination || 'N/A'}</span>
+                                    </div>
+                                    <div className="tl-card-row">
+                                        <span className="tl-card-row-icon">📅</span>
+                                        <span className="tl-card-row-label">Check-in</span>
+                                        <span className="tl-card-row-val">{tourist.tripDetails?.startDate || formatDate(tourist.issuedAt)}</span>
+                                    </div>
+                                    <div className="tl-card-row">
+                                        <span className="tl-card-row-icon">🔚</span>
+                                        <span className="tl-card-row-label">Check-out</span>
+                                        <span className="tl-card-row-val">{formatDate(tourist.returnDate || tourist.validTill)}</span>
+                                    </div>
+                                    <div className="tl-card-row">
+                                        <span className="tl-card-row-icon">📞</span>
+                                        <span className="tl-card-row-label">Mobile</span>
+                                        <span className="tl-card-row-val">{tourist.mobileNumber || 'N/A'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Card Number badge */}
+                                <div className="tl-card-number">#{index + 1}</div>
                             </div>
-
-                            <div className="tl-card-body">
-                                <div className="tl-info-section">
-                                    <div className="tl-info-item full-width">
-                                        <div className="tl-info-label">
-                                            <span className="tl-info-icon">👤</span>
-                                            Personal Information
-                                        </div>
-                                        <div className="tl-info-value">
-                                            <div><strong>Name:</strong> {tourist.fullName || 'N/A'}</div>
-                                            <div><strong>Age:</strong> {tourist.age || 'N/A'}</div>
-                                            <div><strong>Gender:</strong> {tourist.gender || 'N/A'}</div>
-                                            <div><strong>Email:</strong> {tourist.email || 'N/A'}</div>
-                                            <div><strong>Mobile:</strong> {tourist.mobileNumber || 'N/A'}</div>
-                                            <div><strong>Aadhaar:</strong> {tourist.aadhaar}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="tl-info-item">
-                                        <div className="tl-info-label">
-                                            <span className="tl-info-icon">🆔</span>
-                                            Tourist ID (DTID)
-                                        </div>
-                                        <div className="tl-info-value document-id">{tourist.dtid}</div>
-                                    </div>
-
-                                    {tourist.familyMembers && tourist.familyMembers.length > 0 && (
-                                        <div className="tl-info-item full-width">
-                                            <div className="tl-info-label">
-                                                <span className="tl-info-icon">👥</span>
-                                                Family Members ({tourist.numberOfTravellers || tourist.familyMembers.length + 1} total travelers)
-                                            </div>
-                                            <div className="tl-info-value">
-                                                {tourist.familyMembers.map((member, index) => (
-                                                    <div key={index} className="family-member-item">
-                                                        <strong>{member.fullName}</strong> - Age: {member.age}, Gender: {member.gender}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="tl-info-item full-width">
-                                        <div className="tl-info-label">
-                                            <span className="tl-info-icon">✈️</span>
-                                            Trip Details
-                                        </div>
-                                        <div className="tl-info-value">
-                                            {formatTripDetails(tourist.tripDetails)}
-                                        </div>
-                                    </div>
-
-                                    <div className="tl-info-item full-width">
-                                        <div className="tl-info-label">
-                                            <span className="tl-info-icon">📞</span>
-                                            Emergency Contacts
-                                        </div>
-                                        <div className="tl-info-value">
-                                            {formatEmergencyContacts(tourist.emergencyContacts)}
-                                        </div>
-                                    </div>
-
-                                    <div className="tl-info-row">
-                                        <div className="tl-info-item">
-                                            <div className="tl-info-label">
-                                                <span className="tl-info-icon">📅</span>
-                                                Issued At
-                                            </div>
-                                            <div className="tl-info-value">{formatDate(tourist.issuedAt)}</div>
-                                        </div>
-
-                                        <div className="tl-info-item">
-                                            <div className="tl-info-label">
-                                                <span className="tl-info-icon">⏰</span>
-                                                Return Date
-                                            </div>
-                                            <div className="tl-info-value">{formatDate(tourist.returnDate || tourist.validTill)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="card-footer">
-                                <div className={`status-badge ${isValidTouristId(tourist) ? 'verified' : 'expired'}`}>
-                                    <span className="status-icon">{isValidTouristId(tourist) ? '✓' : '⚠️'}</span>
-                                    {isValidTouristId(tourist) ? 'Active' : 'Inactive'}
-                                </div>
-                                <div className="validity-info">
-                                    {isValidTouristId(tourist) ?
-                                        `Valid until ${formatDate(tourist.returnDate || tourist.validTill)}` :
-                                        'Tourist ID is inactive'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
