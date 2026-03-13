@@ -1,19 +1,28 @@
 /* ================================================
-   TouristList Page - Orange Theme
+   TouristList Page - Ocean Travel Theme
    ================================================ */
 
-/* Page Container */
+/* Page Container - matches Dashboard alignment */
 .main-content {
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
   min-height: calc(100vh - 80px);
+  box-sizing: border-box;
   animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Page Header */
@@ -29,7 +38,7 @@
 .tl-page-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   margin: 0 0 0.25rem 0;
   display: flex;
   align-items: center;
@@ -38,7 +47,7 @@
 
 .tl-page-subtitle {
   font-size: 0.9rem;
-  color: #6B6B6B;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -52,19 +61,19 @@
 .search-bar-wrapper svg {
   position: absolute;
   left: 12px;
-  color: #8B8B8B;
+  color: var(--color-text-muted);
   pointer-events: none;
   flex-shrink: 0;
 }
 
 .tl-search-input {
   padding: 0.7rem 1rem 0.7rem 2.5rem;
-  border: 2px solid #F2E2D5;
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   font-size: 0.9rem;
   font-family: 'Poppins', sans-serif;
   background: white;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   transition: all 0.25s ease;
   min-width: 260px;
   box-sizing: border-box;
@@ -72,12 +81,12 @@
 
 .tl-search-input:focus {
   outline: none;
-  border-color: #FF8C42;
-  box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .tl-search-input::placeholder {
-  color: #ABABAB;
+  color: var(--color-text-light);
 }
 
 /* Grid */
@@ -90,9 +99,9 @@
 /* Tourist Card */
 .tl-tourist-card {
   background: #ffffff;
-  border: 1px solid #F2E2D5;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(255, 140, 66, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.08);
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   animation: fadeIn 0.35s ease-out;
@@ -100,26 +109,27 @@
 
 .tl-tourist-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 15px 30px -5px rgba(255, 140, 66, 0.2);
-  border-color: rgba(255, 140, 66, 0.35);
+  box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.3);
 }
 
 /* Card Header */
 .tl-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #FFF6EF, #FFF0E5);
-  border-bottom: 1px solid #F2E2D5;
-  gap: 0.75rem;
+  background: linear-gradient(135deg, #EFF6FF, #E0F2FE);
+  border-bottom: 1px solid var(--color-border);
+  gap: 0.625rem;
+  min-width: 0;
 }
 
 .card-number {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8B8B8B;
-  background: rgba(255, 140, 66, 0.1);
+  color: var(--color-text-muted);
+  background: rgba(37, 99, 235, 0.08);
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
   flex-shrink: 0;
@@ -129,26 +139,40 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .id-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #8B8B8B;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  flex-shrink: 0;
 }
 
 .id-value {
   font-family: 'Courier New', monospace;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #FF8C42, #FFA65C);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   color: white;
-  padding: 0.25rem 0.7rem;
+  padding: 0.25rem 0.875rem;
   border-radius: 9999px;
   letter-spacing: 0.3px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.tl-dtid-pill {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Card Body */
@@ -184,7 +208,7 @@
   gap: 0.4rem;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #777777;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -195,26 +219,26 @@
 
 .tl-info-value {
   font-size: 0.875rem;
-  color: #111111;
+  color: var(--color-text-primary);
   font-weight: 400;
   line-height: 1.5;
 }
 
 .tl-info-value strong {
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text-primary);
 }
 
 .tl-info-value div {
   margin-bottom: 0.2rem;
-  color: #333333;
+  color: var(--color-text-secondary);
 }
 
 .document-id {
   font-family: 'Courier New', monospace;
   font-size: 0.78rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #FF8C42, #FFA65C);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   color: white;
   padding: 0.375rem 0.875rem;
   border-radius: 9999px;
@@ -227,11 +251,11 @@
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.85rem;
-  color: #4B4B4B;
+  color: var(--color-text-secondary);
 }
 
 .trip-details strong {
-  color: #2B2B2B;
+  color: var(--color-text-primary);
 }
 
 /* Emergency Contacts */
@@ -242,27 +266,27 @@
 }
 
 .contact-item {
-  background: rgba(255, 140, 66, 0.05);
-  border: 1px solid rgba(255, 140, 66, 0.15);
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px solid rgba(37, 99, 235, 0.12);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
-  color: #4B4B4B;
+  color: var(--color-text-secondary);
 }
 
 .contact-item strong {
   display: block;
   font-weight: 600;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   margin-bottom: 0.1rem;
 }
 
 /* Family Members */
 .family-member-item {
   font-size: 0.85rem;
-  color: #4B4B4B;
+  color: var(--color-text-secondary);
   padding: 0.3rem 0;
-  border-bottom: 1px solid #FFF0E5;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .family-member-item:last-child {
@@ -270,7 +294,7 @@
 }
 
 .family-member-item strong {
-  color: #2B2B2B;
+  color: var(--color-text-primary);
 }
 
 /* Card Footer */
@@ -279,8 +303,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1.25rem;
-  background: #FAFAFA;
-  border-top: 1px solid #F2E2D5;
+  background: #F8FBFF;
+  border-top: 1px solid var(--color-border);
   gap: 0.75rem;
   flex-wrap: wrap;
 }
@@ -297,15 +321,15 @@
 }
 
 .status-badge.verified {
-  background: rgba(76, 175, 80, 0.12);
-  color: #1B5E20;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .status-badge.expired {
-  background: rgba(255, 140, 66, 0.12);
-  color: #CC6A1A;
-  border: 1px solid rgba(255, 140, 66, 0.3);
+  background: rgba(251, 113, 133, 0.12);
+  color: #e11d48;
+  border: 1px solid rgba(251, 113, 133, 0.25);
 }
 
 .status-icon {
@@ -314,7 +338,7 @@
 
 .validity-info {
   font-size: 0.78rem;
-  color: #555555;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
@@ -332,18 +356,20 @@
 .loading-spinner {
   width: 44px;
   height: 44px;
-  border: 3px solid #F2E2D5;
-  border-top-color: #FF8C42;
+  border: 3px solid var(--color-divider);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-container p {
-  color: #6B6B6B;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
   margin: 0;
 }
@@ -365,17 +391,17 @@
 
 .error-container h2 {
   font-size: 1.5rem;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .error-container p {
-  color: #6B6B6B;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
 .retry-button {
-  background: linear-gradient(135deg, #FF8C42, #FFA65C);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   border: none;
   color: white;
   padding: 0.75rem 1.75rem;
@@ -389,7 +415,7 @@
 
 .retry-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 140, 66, 0.3);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
 }
 
 /* Empty State */
@@ -410,12 +436,12 @@
 
 .empty-state h3 {
   font-size: 1.375rem;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .empty-state p {
-  color: #6B6B6B;
+  color: var(--color-text-muted);
   margin: 0;
   font-size: 0.9rem;
 }

@@ -1,19 +1,38 @@
 /* ================================================
-   PanicAlerts Page - Orange Theme
+   PanicAlerts Page - Ocean Travel Theme
    ================================================ */
+
+/* Icon helper - works for both emoji spans and lucide SVGs */
+.pa-info-icon,
+.pa-section-icon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
 
 /* Page Container */
 .pa-dashboard-container {
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
   min-height: calc(100vh - 80px);
+  box-sizing: border-box;
   animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Header */
@@ -22,11 +41,11 @@
   align-items: center;
   justify-content: space-between;
   background: #ffffff;
-  border: 1px solid #F2E2D5;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 2px 4px rgba(255, 140, 66, 0.08);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.07);
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -48,7 +67,7 @@
   margin: 0;
   font-size: 1.375rem;
   font-weight: 700;
-  color: #111111;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -60,26 +79,26 @@
 
 .pa-section-subtitle {
   margin: 0;
-  color: #555555;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
 }
 
 .pa-last-updated {
-  color: #8B8B8B;
+  color: var(--color-text-light);
   font-size: 0.8rem;
 }
 
 /* Refresh Button */
 .pa-btn {
   appearance: none;
-  background: linear-gradient(135deg, #FF8C42, #FFA65C);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   border: none;
   color: white;
   font-weight: 600;
   font-size: 0.875rem;
   padding: 0.6rem 1.25rem;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(255, 140, 66, 0.3);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Poppins', sans-serif;
@@ -87,7 +106,7 @@
 
 .pa-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 140, 66, 0.35);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
 }
 
 .pa-btn:active {
@@ -95,7 +114,7 @@
 }
 
 .pa-btn:disabled {
-  background: #FFC89A;
+  background: #BAE6FD;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
@@ -135,18 +154,18 @@
   gap: 1rem;
   text-align: center;
   background: #ffffff;
-  border: 1px solid #F2E2D5;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
 }
 
 .pa-empty-state h3 {
   font-size: 1.375rem;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .pa-empty-state p {
-  color: #6B6B6B;
+  color: var(--color-text-muted);
   margin: 0;
   font-size: 0.9rem;
 }
@@ -172,16 +191,16 @@
 /* Tourist Card */
 .pa-tourist-card {
   background: #ffffff;
-  border: 1px solid #F2E2D5;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(255, 140, 66, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.07);
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .pa-tourist-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(255, 140, 66, 0.18);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.15);
 }
 
 .pa-tourist-card.compact .pa-info-value div {
@@ -194,16 +213,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #FFF6EF, #FFF0E5);
-  border-bottom: 1px solid #F2E2D5;
+  background: linear-gradient(135deg, #EFF6FF, #E0F2FE);
+  border-bottom: 1px solid var(--color-border);
   gap: 0.75rem;
 }
 
 .pa-card-number {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8B8B8B;
-  background: rgba(255, 140, 66, 0.1);
+  color: var(--color-text-muted);
+  background: rgba(37, 99, 235, 0.08);
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
   flex-shrink: 0;
@@ -220,7 +239,7 @@
 .pa-id-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #8B8B8B;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
@@ -229,7 +248,7 @@
   font-family: 'Courier New', monospace;
   font-size: 0.78rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #FF8C42, #FFA65C);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   color: white;
   padding: 0.25rem 0.7rem;
   border-radius: 9999px;
@@ -266,7 +285,7 @@
 .pa-info-label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #777777;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -280,31 +299,31 @@
 
 .pa-info-value {
   font-size: 0.875rem;
-  color: #111111;
+  color: var(--color-text-primary);
   font-weight: 400;
   line-height: 1.5;
 }
 
 .pa-info-value div {
-  color: #333333;
+  color: var(--color-text-secondary);
   margin-bottom: 0.15rem;
 }
 
 .pa-info-value strong {
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text-primary);
 }
 
 /* Alert Block */
 .alert-block {
-  background: rgba(255, 140, 66, 0.06);
-  border: 1px solid rgba(255, 140, 66, 0.2);
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.15);
   border-radius: 10px;
   padding: 0.875rem 1rem;
 }
 
 .alert-block .pa-info-label {
-  color: #CC6A1A;
+  color: var(--color-primary);
 }
 
 /* Card Footer */
@@ -313,8 +332,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.25rem;
-  background: #FAFAFA;
-  border-top: 1px solid #F2E2D5;
+  background: #F8FBFF;
+  border-top: 1px solid var(--color-border);
   gap: 0.5rem;
   flex-wrap: wrap;
 }
@@ -333,8 +352,8 @@
 
 .status-badge.verified {
   color: #2E7D32;
-  background: rgba(76, 175, 80, 0.12);
-  border-color: rgba(76, 175, 80, 0.25);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
 .status-badge.expired {
@@ -348,7 +367,7 @@
 }
 
 .validity-info {
-  color: #555555;
+  color: var(--color-text-muted);
   font-size: 0.78rem;
 }
 
@@ -360,31 +379,31 @@
 }
 
 .pa-contact-item {
-  background: rgba(255, 140, 66, 0.05);
-  border: 1px solid rgba(255, 140, 66, 0.12);
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px solid rgba(37, 99, 235, 0.1);
   border-radius: 7px;
   padding: 0.4rem 0.625rem;
   font-size: 0.82rem;
-  color: #4B4B4B;
+  color: var(--color-text-secondary);
 }
 
 .pa-contact-item strong {
   display: block;
   font-weight: 600;
-  color: #2B2B2B;
+  color: var(--color-text-primary);
 }
 
 /* Trip Details */
 .pa-trip-details {
   font-size: 0.85rem;
-  color: #4B4B4B;
+  color: var(--color-text-secondary);
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
 
 .pa-trip-details strong {
-  color: #2B2B2B;
+  color: var(--color-text-primary);
 }
 
 /* Skeleton */
@@ -396,16 +415,16 @@
 
 .skeleton-card {
   background: #ffffff;
-  border: 1px solid #F2E2D5;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 2px 4px rgba(255, 140, 66, 0.06);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.05);
   padding: 1.125rem 1.25rem;
 }
 
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: #F5EDE5;
+  background: var(--color-divider);
   border-radius: 8px;
 }
 
@@ -434,14 +453,16 @@
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.65) 50%,
-    rgba(255,255,255,0) 100%);
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.65) 50%,
+      rgba(255, 255, 255, 0) 100%);
   animation: shimmer 1.4s infinite;
 }
 
 @keyframes shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Responsive */

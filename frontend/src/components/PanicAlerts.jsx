@@ -1,5 +1,9 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import axios from 'axios';
+import {
+  Timer, MapPin, CalendarDays, Clock4, User, RefreshCw,
+  ShieldAlert, CheckCircle2, XCircle, AlertTriangle, PhoneCall, Plane
+} from 'lucide-react';
 import './PanicAlerts.css';
 
 function formatDate(value) {
@@ -119,7 +123,7 @@ function TouristCard({ tourist, index, alert }) {
         <div className="pa-info-section">
           {alert && (
             <div className="pa-info-item full-width alert-block">
-              <div className="pa-info-label"><span className="pa-info-icon">⏱️</span>Alert</div>
+              <div className="pa-info-label"><Timer size={14} className="pa-info-icon" />Alert Details</div>
               <div className="pa-info-value">
                 <div><strong>Time:</strong> {formatDate(alert.createdAt)}</div>
                 <div><strong>Location:</strong> {alert.latitude ?? alert?.location?.latitude ?? '-'}, {alert.longitude ?? alert?.location?.longitude ?? '-'}</div>
@@ -127,18 +131,18 @@ function TouristCard({ tourist, index, alert }) {
             </div>
           )}
           <div className="pa-info-item full-width">
-            <div className="pa-info-label"><span className="pa-info-icon">👤</span>Tourist</div>
+            <div className="pa-info-label"><User size={14} className="pa-info-icon" />Tourist</div>
             <div className="pa-info-value">
               <div><strong>Name:</strong> {tourist.fullName || 'N/A'}</div>
             </div>
           </div>
           <div className="pa-info-row">
             <div className="pa-info-item">
-              <div className="pa-info-label"><span className="pa-info-icon">📅</span>Issued</div>
+              <div className="pa-info-label"><CalendarDays size={14} className="pa-info-icon" />Issued</div>
               <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</div>
             </div>
             <div className="pa-info-item">
-              <div className="pa-info-label"><span className="pa-info-icon">⏰</span>Return</div>
+              <div className="pa-info-label"><Clock4 size={14} className="pa-info-icon" />Return</div>
               <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</div>
             </div>
           </div>
@@ -146,7 +150,7 @@ function TouristCard({ tourist, index, alert }) {
       </div>
       <div className="card-footer">
         <div className={`status-badge ${isActive ? 'verified' : 'expired'}`}>
-          <span className="status-icon">{isActive ? '✓' : '⚠️'}</span>
+          {isActive ? <CheckCircle2 size={14} className="status-icon" /> : <XCircle size={14} className="status-icon" />}
           {isActive ? 'Active' : 'Inactive'}
         </div>
         <div className="validity-info">
@@ -190,7 +194,7 @@ export default function PanicAlerts() {
       }
     }
     fetchAlerts();
-    const id = setInterval(fetchAlerts, 15000);
+    const id = setInterval(fetchAlerts, 300000);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -250,13 +254,16 @@ export default function PanicAlerts() {
       <div className="pa-dashboard-header">
         <div className="pa-header-content">
           <h2 className="pa-section-title">
-            <span className="pa-section-icon">🚨</span>
+            <ShieldAlert size={22} className="pa-section-icon" />
             Panic Alerts
           </h2>
           <p className="pa-section-subtitle">Live emergencies reported by tourists</p>
         </div>
         <div className="pa-header-actions">
-          <button className="pa-btn" onClick={refresh} disabled={loading}>Refresh</button>
+          <button className="pa-btn" onClick={refresh} disabled={loading}>
+            <RefreshCw size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+            Refresh
+          </button>
           {lastUpdated && <div className="pa-last-updated">Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated)}</div>}
         </div>
       </div>
@@ -283,7 +290,7 @@ export default function PanicAlerts() {
 
       {alerts.length === 0 && !loading ? (
         <div className="pa-empty-state">
-          <div className="pa-empty-icon">🚨</div>
+          <ShieldAlert size={52} color="#CBD5E1" className="pa-empty-icon" />
           <h3>No panic alerts</h3>
           <p>No active panic alerts found.</p>
         </div>

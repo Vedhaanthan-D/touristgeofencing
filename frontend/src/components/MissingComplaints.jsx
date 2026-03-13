@@ -275,9 +275,8 @@ const generateMissingPersonSummary = (tourist, alert) => {
   const familyCount = tourist?.familyMembers?.length || 0;
   const familyInfo =
     familyCount > 0
-      ? `The tourist was accompanied by ${familyCount} family member${
-          familyCount > 1 ? "s" : ""
-        }.`
+      ? `The tourist was accompanied by ${familyCount} family member${familyCount > 1 ? "s" : ""
+      }.`
       : "The tourist was traveling alone.";
 
   const tripPurpose = tourist?.tripDetails?.purpose || "tourism purposes";
@@ -290,9 +289,8 @@ INCIDENT SUMMARY:
 The individual was last detected by the safety monitoring system at ${lastSeenTime} in the vicinity of ${lastKnownLocation}. The system registered unusual inactivity for a duration of ${idleDuration}, triggering an automatic missing person alert.
 
 BACKGROUND:
-${touristName} was visiting ${destination} for ${tripPurpose}. ${familyInfo} The digital tourist identification system (DTID: ${
-    tourist?.dtid || "N/A"
-  }) was actively monitoring the tourist's safety throughout their visit.
+${touristName} was visiting ${destination} for ${tripPurpose}. ${familyInfo} The digital tourist identification system (DTID: ${tourist?.dtid || "N/A"
+    }) was actively monitoring the tourist's safety throughout their visit.
 
 LAST KNOWN ACTIVITY:
 Prior to the alert, the tourist's device showed normal activity patterns. The abrupt cessation of movement and system interaction, combined with the extended idle period, indicates a potential safety concern requiring immediate investigation.
@@ -331,8 +329,7 @@ const generateEFIRPDF = (tourist, alert) => {
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(
-      `FIR No: MIS/${
-        alert?.id?.slice(-8) || "N/A"
+      `FIR No: MIS/${alert?.id?.slice(-8) || "N/A"
       }/${new Date().getFullYear()}`,
       20,
       35
@@ -404,8 +401,7 @@ const generateEFIRPDF = (tourist, alert) => {
       ["Alert Generated:", formatDate(alert?.createdAt)],
       [
         "Last Known Location:",
-        `${alert?.location?.latitude || "-"}, ${
-          alert?.location?.longitude || "-"
+        `${alert?.location?.latitude || "-"}, ${alert?.location?.longitude || "-"
         }`,
       ],
       ["Idle Duration:", formatSecondsToHHMM(alert?.idleDuration)],
@@ -440,8 +436,7 @@ const generateEFIRPDF = (tourist, alert) => {
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(
-      `Case Reference: MIS/${
-        alert?.id?.slice(-8) || "N/A"
+      `Case Reference: MIS/${alert?.id?.slice(-8) || "N/A"
       }/${new Date().getFullYear()}`,
       20,
       35
@@ -457,7 +452,7 @@ const generateEFIRPDF = (tourist, alert) => {
     const summaryLines = doc.splitTextToSize(summaryText, 170);
     let summaryYPosition = 65;
 
-    
+
     summaryLines.forEach((line) => {
       if (summaryYPosition > 250) {
         doc.addPage();
@@ -524,9 +519,8 @@ const generateEFIRPDF = (tourist, alert) => {
     doc.rect(10, 10, 190, 277);
 
     // Save the PDF
-    const fileName = `E-FIR_Missing_${tourist?.dtid || "Tourist"}_${
-      new Date().toISOString().split("T")[0]
-    }.pdf`;
+    const fileName = `E-FIR_Missing_${tourist?.dtid || "Tourist"}_${new Date().toISOString().split("T")[0]
+      }.pdf`;
     doc.save(fileName);
   } catch (error) {
     console.error("Error generating PDF:", error);
@@ -534,7 +528,6 @@ const generateEFIRPDF = (tourist, alert) => {
   }
 };
 
-// TouristCard component remains the same but with better error handling
 function TouristCard({ tourist, index, alert }) {
   const isActive = useMemo(() => {
     if (!tourist) return false;
@@ -556,138 +549,137 @@ function TouristCard({ tourist, index, alert }) {
 
   if (!tourist) return null;
 
+  const initials = (tourist.fullName || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <div className="mc-tourist-card compact">
-      <div className="mc-card-header">
-        <div className="mc-card-number">
-          {typeof index === "number" ? `#${index + 1}` : ""}
+    <div className="mc-card-new">
+      {/* Gradient Header */}
+      <div className="mc-card-new-header">
+        <div className="mc-card-new-header-left">
+          <div className="mc-avatar">{initials}</div>
+          <div className="mc-avatar-info">
+            <div className="mc-avatar-name">{tourist.fullName || "Unknown"}</div>
+            <div className="mc-avatar-dtid">{tourist.dtid}</div>
+          </div>
         </div>
-        <div className="mc-card-id">
-          <span className="mc-id-label">DTID</span>
-          <span className="mc-id-value">{tourist.dtid}</span>
+        <div className="mc-card-new-header-right">
+          <span className={`mc-status-pill ${isActive ? "active" : "missing"}`}>
+            {isActive ? "✓ Active" : "⚠ Missing"}
+          </span>
+          <span className="mc-card-index">#{typeof index === "number" ? index + 1 : ""}</span>
+        </div>
+      </div>
+
+      {/* Alert Block */}
+      {alert && (
+        <div className="mc-alert-strip">
+          <div className="mc-alert-strip-title">🚨 Alert Triggered</div>
+          <div className="mc-alert-strip-grid">
+            <div className="mc-alert-chip">
+              <span className="mc-chip-label">Time</span>
+              <span className="mc-chip-value">{formatDate(alert.createdAt)}</span>
+            </div>
+            {Number.isFinite(Number(alert.idleDuration)) && (
+              <div className="mc-alert-chip">
+                <span className="mc-chip-label">Idle</span>
+                <span className="mc-chip-value">{formatSecondsToHHMM(alert.idleDuration)}</span>
+              </div>
+            )}
+            <div className="mc-alert-chip">
+              <span className="mc-chip-label">📍 Location</span>
+              <span className="mc-chip-value">
+                {alert?.location?.latitude ?? "—"}, {alert?.location?.longitude ?? "—"}
+              </span>
+            </div>
+            {(() => {
+              const uid = alert.userId || alert.uid || "";
+              const hideUid = uid === "ZsWMn71fYrY2Z8qSCb4qxN7O4XC2";
+              return !hideUid && uid ? (
+                <div className="mc-alert-chip">
+                  <span className="mc-chip-label">UID</span>
+                  <span className="mc-chip-value mc-chip-mono">{uid}</span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Info Body */}
+      <div className="mc-card-new-body">
+        {/* Tourist Details Row */}
+        <div className="mc-info-grid">
+          <div className="mc-info-cell">
+            <span className="mc-cell-label">📞 Contact</span>
+            <span className="mc-cell-value">{tourist.phone || tourist.contactNumber || "N/A"}</span>
+          </div>
+          {tourist.nationality && (
+            <div className="mc-info-cell">
+              <span className="mc-cell-label">🌐 Nationality</span>
+              <span className="mc-cell-value">{tourist.nationality}</span>
+            </div>
+          )}
+          <div className="mc-info-cell">
+            <span className="mc-cell-label">📅 Issued</span>
+            <span className="mc-cell-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</span>
+          </div>
+          <div className="mc-info-cell">
+            <span className="mc-cell-label">⏰ Return</span>
+            <span className="mc-cell-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</span>
+          </div>
+        </div>
+
+        {/* Trip Details */}
+        {tourist.tripDetails && (
+          <div className="mc-section-block">
+            <div className="mc-section-label">✈️ Trip Details</div>
+            <div className="mc-section-content">{formatTripDetails(tourist.tripDetails)}</div>
+          </div>
+        )}
+
+        {/* Family Members */}
+        {tourist.familyMembers && tourist.familyMembers.length > 0 && (
+          <div className="mc-section-block">
+            <div className="mc-section-label">👨‍👩‍👧 Family Members ({tourist.familyMembers.length})</div>
+            <div className="mc-family-tags">
+              {tourist.familyMembers.map((member, i) => (
+                <span key={i} className="mc-family-tag">
+                  {member.fullName} · {member.age}y · {member.gender}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Emergency Contacts */}
+        {tourist.emergencyContacts && (
+          <div className="mc-section-block">
+            <div className="mc-section-label">🆘 Emergency Contacts</div>
+            <div className="mc-section-content">{formatEmergencyContacts(tourist.emergencyContacts)}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="mc-card-new-footer">
+        <div className="mc-validity-text">
+          {isActive
+            ? `Valid until ${formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}`
+            : "Tourist reported missing"}
         </div>
         <button
-          className="download-btn"
+          className="mc-efir-btn"
           onClick={handleDownloadEFIR}
-          title="Download E-FIR PDF"
           disabled={!tourist}
+          title="Download E-FIR PDF"
         >
           📄 Download E-FIR
         </button>
-      </div>
-      <div className="mc-card-body">
-        <div className="mc-info-section">
-          {alert && (
-            <div className="mc-info-item full-width alert-block">
-              <div className="mc-info-label">
-                <span className="mc-info-icon">⏱️</span>Alert
-              </div>
-              <div className="mc-info-value">
-                <div>
-                  <strong>Time:</strong> {formatDate(alert.createdAt)}
-                </div>
-                {Number.isFinite(Number(alert.idleDuration)) && (
-                  <div>
-                    <strong>Idle:</strong>{" "}
-                    {formatSecondsToHHMM(alert.idleDuration)}
-                  </div>
-                )}
-                {(() => {
-                  const uid = alert.userId || alert.uid || "";
-                  const hideUid = uid === "ZsWMn71fYrY2Z8qSCb4qxN7O4XC2";
-                  return !hideUid && uid ? (
-                    <div>
-                      <strong>UID:</strong> {uid}
-                    </div>
-                  ) : null;
-                })()}
-                <div>
-                  <strong>Location:</strong> {alert?.location?.latitude ?? "-"},{" "}
-                  {alert?.location?.longitude ?? "-"}
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="mc-info-item full-width">
-            <div className="mc-info-label">
-              <span className="mc-info-icon">👤</span>Tourist
-            </div>
-            <div className="mc-info-value">
-              <div>
-                <strong>Name:</strong> {tourist.fullName || "N/A"}
-              </div>
-              <div>
-                <strong>Contact:</strong>{" "}
-                {tourist.phone || tourist.contactNumber || "N/A"}
-              </div>
-              {tourist.nationality && (
-                <div>
-                  <strong>Nationality:</strong> {tourist.nationality}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mc-info-row">
-            <div className="mc-info-item">
-              <div className="mc-info-label">
-                <span className="mc-info-icon">📅</span>Issued
-              </div>
-              <div className="mc-info-value">
-                {formatUnixSecondsToLocale(tourist.issuedAt)}
-              </div>
-            </div>
-            {tourist.familyMembers && tourist.familyMembers.length > 0 && (
-              <div className="mc-info-item full-width">
-                <div className="mc-info-label">
-                  <span className="mc-info-icon">👨‍👩‍👧‍👦</span>Family Members
-                </div>
-                <div className="mc-info-value">
-                  <div className="family-members">
-                    {tourist.familyMembers.map((member, index) => (
-                      <div key={index} className="family-member">
-                        <strong>{member.fullName}</strong> ({member.age} years,{" "}
-                        {member.gender})
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="mc-info-item">
-              <div className="mc-info-label">
-                <span className="mc-info-icon">⏰</span>Return
-              </div>
-              <div className="mc-info-value">
-                {formatUnixSecondsToLocale(
-                  tourist.returnDate || tourist.validTill
-                )}
-              </div>
-            </div>
-          </div>
-          {tourist.emergencyContacts && (
-            <div className="mc-info-item full-width">
-              <div className="mc-info-label">
-                <span className="mc-info-icon">📞</span>Emergency Contacts
-              </div>
-              <div className="mc-info-value">
-                {formatEmergencyContacts(tourist.emergencyContacts)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="card-footer">
-        <div className={`status-badge ${isActive ? "verified" : "expired"}`}>
-          <span className="status-icon">{isActive ? "✓" : "⚠️"}</span>
-          {isActive ? "Active" : "Missing"}
-        </div>
-        <div className="validity-info">
-          {isActive
-            ? `Valid until ${formatUnixSecondsToLocale(
-                tourist.returnDate || tourist.validTill
-              )}`
-            : "Tourist reported missing"}
-        </div>
       </div>
     </div>
   );
@@ -729,7 +721,7 @@ export default function MissingComplaints() {
     }
 
     fetchItems();
-    const id = setInterval(fetchItems, 15000);
+    const id = setInterval(fetchItems, 300000);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -780,7 +772,7 @@ export default function MissingComplaints() {
               prev[dtid] ? prev : { ...prev, [dtid]: data }
             );
           }
-        } catch {}
+        } catch { }
       }
     }
 

@@ -107,7 +107,7 @@ function TouristList() {
                 <h2>Something went wrong</h2>
                 <p>{error}</p>
                 <button onClick={() => window.location.reload()} className="retry-button">
-                    <RefreshCw size={16} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+                    <RefreshCw size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                     Try Again
                 </button>
             </div>
@@ -120,7 +120,7 @@ function TouristList() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 className="tl-page-title">
-                        <Users size={28} color="#FF8C42" />
+                        <Users size={28} color="#2563EB" />
                         Tourist Records
                     </h1>
                     <p className="tl-page-subtitle">Browse and search all registered tourist profiles</p>
@@ -152,7 +152,7 @@ function TouristList() {
                                 <div className="card-number">#{index + 1}</div>
                                 <div className="card-id">
                                     <span className="id-label">DTID</span>
-                                    <span className="id-value">{tourist.dtid}</span>
+                                    <span className="id-value tl-dtid-pill">{tourist.dtid}</span>
                                 </div>
                             </div>
 
@@ -243,7 +243,7 @@ function TouristList() {
                                     {isValidTouristId(tourist) ? 'Active' : 'Inactive'}
                                 </div>
                                 <div className="validity-info">
-                                    {isValidTouristId(tourist) ? 
+                                    {isValidTouristId(tourist) ?
                                         `Valid until ${formatDate(tourist.returnDate || tourist.validTill)}` :
                                         'Tourist ID is inactive'
                                     }

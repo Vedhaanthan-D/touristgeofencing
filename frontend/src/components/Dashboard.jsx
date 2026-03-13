@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useData } from '../contexts/DataContext';
-import { 
-    Users, 
-    UserCheck, 
-    UserPlus, 
-    Clock, 
+import {
+    Users,
+    UserCheck,
+    UserPlus,
+    Clock,
     RefreshCw,
     Eye,
-    CheckCircle,
+    ShieldCheck,
     AlertTriangle,
-    XCircle,
-    Home,
-    Calendar,
-    MapPin
+    X,
+    Globe2,
+    CalendarDays,
+    MapPin,
+    Activity,
+    BadgeCheck,
+    Phone,
+    Fingerprint,
+    HeartHandshake
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -50,7 +55,7 @@ function Dashboard() {
     const calculateStats = (touristsData) => {
         const currentTime = Math.floor(Date.now() / 1000);
         const oneDayAgo = currentTime - (24 * 60 * 60);
-        
+
         let activeCount = 0;
         let pendingCount = 0;
         let newRegistrationsCount = 0;
@@ -77,13 +82,13 @@ function Dashboard() {
 
     const getTouristStatus = (tourist) => {
         const currentTime = Math.floor(Date.now() / 1000);
-        
+
         if (!tourist.isActive) return 'returned';
         if (currentTime > tourist.returnDate) return 'overdue';
-        
+
         const oneDayFromNow = currentTime + (24 * 60 * 60);
         if (tourist.returnDate <= oneDayFromNow) return 'returning-soon';
-        
+
         return 'active';
     };
 
@@ -107,7 +112,7 @@ function Dashboard() {
 
     useEffect(() => {
         fetchTourists();
-        const interval = setInterval(fetchTourists, 30000);
+        const interval = setInterval(fetchTourists, 300000);
         return () => clearInterval(interval);
     }, []);
 
@@ -160,7 +165,7 @@ function Dashboard() {
 
             {isNewRegistration && (
                 <div className="dash-notification-banner">
-                    <CheckCircle size={20} />
+                    <ShieldCheck size={20} />
                     <span>New tourist registration completed! Dashboard updated with latest data.</span>
                 </div>
             )}
@@ -260,26 +265,26 @@ function Dashboard() {
                                             </td>
                                             <td>
                                                 <div className="flex items-center gap-sm">
-                                                    <Calendar size={16} className="text-muted" />
+                                                    <CalendarDays size={16} className="text-muted" />
                                                     {formatDate(tourist.issuedAt)}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="flex items-center gap-sm">
-                                                    <Calendar size={16} className="text-muted" />
+                                                    <CalendarDays size={16} className="text-muted" />
                                                     {formatDate(tourist.returnDate)}
                                                 </div>
                                             </td>
                                             <td>
                                                 {status === 'active' && (
                                                     <span className="badge badge-success">
-                                                        <CheckCircle size={14} />
+                                                        <ShieldCheck size={14} />
                                                         Active
                                                     </span>
                                                 )}
                                                 {status === 'returned' && (
                                                     <span className="badge badge-info">
-                                                        <Home size={14} />
+                                                        <BadgeCheck size={14} />
                                                         Returned
                                                     </span>
                                                 )}
@@ -297,7 +302,7 @@ function Dashboard() {
                                                 )}
                                             </td>
                                             <td>
-                                                <button 
+                                                <button
                                                     className="dash-btn-icon"
                                                     onClick={() => handleViewTourist(tourist)}
                                                     title="View Details"
