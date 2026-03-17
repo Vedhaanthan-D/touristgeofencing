@@ -13,10 +13,8 @@ This repository contains the backend and frontend for the Tourist Registration S
 ## 🚀 Features
 
 - **Tourist Registration**: Register tourists with personal and trip details
-- **Digital Tourist ID (DTID)**: Auto-generated unique ID for each tourist
 - **Firebase Integration**: Authentication and Firestore database
 - **Safety Monitoring**: Panic alerts and missing complaints tracking
-- **No Blockchain Required**: Simplified deployment without blockchain complexity
 
 ## 🛠️ Setup Instructions
 
