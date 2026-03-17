@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import PanicAlerts from './components/PanicAlerts';
 import MissingComplaints from './components/MissingComplaints';
 import { DataProvider } from './contexts/DataContext';
+import SOSToast from './components/SOSToast';
 import './App.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
             <Router>
                 <div className="app-container">
                     <Navigation />
+                    <SOSToast />
 
                     
                     <Routes>

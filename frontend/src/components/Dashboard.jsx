@@ -56,6 +56,18 @@ function Dashboard() {
         const currentTime = Math.floor(Date.now() / 1000);
         const oneDayAgo = currentTime - (24 * 60 * 60);
 
+        // Normalize issuedAt to Unix seconds regardless of Firestore format
+        const toUnixSeconds = (val) => {
+            if (!val) return 0;
+            if (typeof val === 'number') return val > 1e12 ? Math.floor(val / 1000) : val;
+            if (typeof val === 'object') {
+                if (typeof val.seconds === 'number') return val.seconds;
+                if (typeof val._seconds === 'number') return val._seconds;
+            }
+            const n = Number(val);
+            return isNaN(n) ? 0 : (n > 1e12 ? Math.floor(n / 1000) : n);
+        };
+
         let activeCount = 0;
         let pendingCount = 0;
         let newRegistrationsCount = 0;
@@ -67,7 +79,7 @@ function Dashboard() {
             if (tourist.isActive && currentTime > tourist.returnDate) {
                 pendingCount++;
             }
-            if (tourist.issuedAt >= oneDayAgo) {
+            if (toUnixSeconds(tourist.issuedAt) >= oneDayAgo) {
                 newRegistrationsCount++;
             }
         });
