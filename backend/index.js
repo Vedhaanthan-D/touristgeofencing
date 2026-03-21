@@ -133,12 +133,16 @@ const updateTouristStatus = async (tourist) => {
 app.get('/api/tourists', async (req, res) => {
     try {
         const data = await Tourist.find();
-        
-        // Update status for each tourist
-        const updatedData = await Promise.all(
-            data.map(tourist => updateTouristStatus(tourist))
-        );
-        
+
+        // Calculate status on the fly without writing to Firestore
+        // This prevents unnecessary writes on every read
+        const currentTime = Math.floor(Date.now() / 1000);
+        const updatedData = data.map(tourist => {
+            // Calculate isActive based on returnDate without writing to DB
+            const isActive = tourist.isActive && currentTime <= tourist.returnDate;
+            return { ...tourist, isActive };
+        });
+
         res.json(updatedData);
     } catch (err) {
         console.error('Error fetching tourists:', err);
