@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import { Search, AlertTriangle, RefreshCw, Users, SearchX } from 'lucide-react';
 import './TouristList.css';
+
+// Cache configuration
+const CACHE_KEY = 'touristList_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function TouristList() {
     const [tourists, setTourists] = useState([]);
@@ -9,23 +13,68 @@ function TouristList() {
     const [error, setError] = useState(null);
     const [query, setQuery] = useState('');
 
-    useEffect(() => {
-        const fetchTourists = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tourists`);
-                setTourists(response.data);
-                setError(null);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load tourist data. Please try again later.');
-            } finally {
-                setLoading(false);
+    // Check if cache is valid
+    const getCachedData = useCallback(() => {
+        try {
+            const cached = sessionStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                if (Date.now() - timestamp < CACHE_DURATION) {
+                    return data;
+                }
             }
-        };
-
-        fetchTourists();
+        } catch (err) {
+            console.error('Cache read error:', err);
+        }
+        return null;
     }, []);
+
+    // Save to cache
+    const setCachedData = useCallback((data) => {
+        try {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                data,
+                timestamp: Date.now()
+            }));
+        } catch (err) {
+            console.error('Cache write error:', err);
+        }
+    }, []);
+
+    const fetchTourists = useCallback(async (useCache = true) => {
+        // Try cache first
+        if (useCache) {
+            const cachedData = getCachedData();
+            if (cachedData) {
+                setTourists(cachedData);
+                setLoading(false);
+                setError(null);
+                return;
+            }
+        }
+
+        try {
+            setLoading(true);
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tourists`);
+            setTourists(response.data);
+            setCachedData(response.data);
+            setError(null);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to load tourist data. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    }, [getCachedData, setCachedData]);
+
+    useEffect(() => {
+        fetchTourists();
+    }, [fetchTourists]);
+
+    // Force refresh (bypasses cache)
+    const handleRefresh = useCallback(() => {
+        fetchTourists(false);
+    }, [fetchTourists]);
 
     // Helpers
     const formatTripDetails = (tripDetails) => {
@@ -106,7 +155,7 @@ function TouristList() {
                 <div className="error-icon"><AlertTriangle size={48} color="#E53935" /></div>
                 <h2>Something went wrong</h2>
                 <p>{error}</p>
-                <button onClick={() => window.location.reload()} className="retry-button">
+                <button onClick={handleRefresh} className="retry-button">
                     <RefreshCw size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                     Try Again
                 </button>
