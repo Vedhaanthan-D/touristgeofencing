@@ -13,6 +13,10 @@ const cors = require('cors');
 // Allow all origins (for development only)
 app.use(cors());
 
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK' });
+});
+
 // Firebase connection verification
 console.log('Firebase Admin SDK initialized successfully');
 console.log('Project ID:', admin.app().options.projectId);
