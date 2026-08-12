@@ -95,7 +95,7 @@ function TouristList() {
                 <div className="loading-container">
                     <div className="loading-spinner"></div>
                     <h3>Loading Tourist Directory...</h3>
-                    <p>Retrieving registered profiles from Firebase database...</p>
+                    <p>Retrieving registered traveler profiles...</p>
                 </div>
             </div>
         );

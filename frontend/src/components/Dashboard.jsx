@@ -159,7 +159,7 @@ function Dashboard() {
                 <div className="db-loading-container">
                     <div className="spinner"></div>
                     <h3>Loading Dashboard...</h3>
-                    <p>Fetching live tourist geofencing records...</p>
+                    <p>Preparing safety telemetry & regional records...</p>
                 </div>
             </div>
         );
