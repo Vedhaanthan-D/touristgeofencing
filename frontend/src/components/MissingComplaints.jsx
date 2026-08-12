@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
-import axios from "axios";
+import { apiClient } from "../config/api";
 import "./MissingComplaints.css";
 import { jsPDF } from "jspdf";
 import { useData } from "../contexts/DataContext";
@@ -7,8 +7,6 @@ import {
   FileText, Search, RefreshCw, AlertTriangle, MapPin, ExternalLink,
   Phone, Calendar, Clock, Copy, Check, X, ShieldAlert
 } from "lucide-react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -445,7 +443,7 @@ export default function MissingComplaints() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/safety-alerts`);
+      const { data } = await apiClient.get('/api/safety-alerts');
       const list = Array.isArray(data) ? data : [];
       const sorted = list.slice().sort((a, b) => {
         const da = new Date(a.createdAt).getTime() || 0;
@@ -498,7 +496,7 @@ export default function MissingComplaints() {
       for (const dtid of missingDtids) {
         if (cancelled) break;
         try {
-          const { data } = await axios.get(`${API_BASE_URL}/api/tourists/${dtid}`);
+          const { data } = await apiClient.get(`/api/tourists/${dtid}`);
           if (!cancelled && data) {
             setTouristByDtid((prev) => ({ ...prev, [dtid]: data }));
           }

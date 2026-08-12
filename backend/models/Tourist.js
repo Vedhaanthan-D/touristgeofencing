@@ -1,9 +1,11 @@
 const { db } = require('../firebase-config');
 
+/** Tourist data model for Firestore interaction storing hashed identity and last 4 digits. */
 class Tourist {
     constructor(data) {
         this.dtid = data.dtid;
-        this['aadhaar/passport'] = data.aadhaar || data['aadhaar/passport'];
+        this.aadhaarHash = data.aadhaarHash;
+        this.aadhaarLast4 = data.aadhaarLast4;
         this.fullName = data.fullName;
         this.age = data.age;
         this.gender = data.gender;
@@ -23,7 +25,8 @@ class Tourist {
         try {
             await db.collection('tourists').doc(this.dtid).set({
                 dtid: this.dtid,
-                'aadhaar/passport': this['aadhaar/passport'],
+                aadhaarHash: this.aadhaarHash,
+                aadhaarLast4: this.aadhaarLast4,
                 fullName: this.fullName,
                 age: this.age,
                 gender: this.gender,
@@ -45,10 +48,19 @@ class Tourist {
         }
     }
 
-    // Static method to find all tourists
-    static async find() {
+    // Static method to find all tourists with query limit and cursor pagination
+    static async find({ limit = 50, startAfter } = {}) {
         try {
-            const snapshot = await db.collection('tourists').get();
+            let query = db.collection('tourists').orderBy('createdAt', 'desc').limit(Number(limit) || 50);
+            
+            if (startAfter) {
+                const startDoc = await db.collection('tourists').doc(startAfter).get();
+                if (startDoc.exists) {
+                    query = query.startAfter(startDoc);
+                }
+            }
+
+            const snapshot = await query.get();
             const tourists = [];
             
             snapshot.forEach(doc => {
@@ -95,7 +107,6 @@ class Tourist {
             throw new Error(`Error updating tourist: ${error.message}`);
         }
     }
-       
-    }
+}
 
 module.exports = Tourist;

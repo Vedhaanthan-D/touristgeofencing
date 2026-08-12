@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 
 const DataContext = createContext();
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const useData = () => {
     const context = useContext(DataContext);
@@ -30,7 +28,7 @@ export const DataProvider = ({ children }) => {
     const fetchTourists = useCallback(async () => {
         try {
             setLoadingTourists(true);
-            const response = await axios.get(`${API_BASE_URL}/api/tourists`);
+            const response = await apiClient.get('/api/tourists');
             const list = Array.isArray(response.data) ? response.data : [];
             setTourists(list);
 
@@ -51,7 +49,7 @@ export const DataProvider = ({ children }) => {
     const fetchPanicAlerts = useCallback(async () => {
         try {
             setLoadingPanic(true);
-            const response = await axios.get(`${API_BASE_URL}/api/panic-alerts`);
+            const response = await apiClient.get('/api/panic-alerts');
             const list = Array.isArray(response.data) ? response.data : [];
             setPanicAlerts(list);
         } catch (err) {
@@ -65,7 +63,7 @@ export const DataProvider = ({ children }) => {
     const fetchSafetyAlerts = useCallback(async () => {
         try {
             setLoadingSafety(true);
-            const response = await axios.get(`${API_BASE_URL}/api/safety-alerts`);
+            const response = await apiClient.get('/api/safety-alerts');
             const list = Array.isArray(response.data) ? response.data : [];
             setSafetyAlerts(list);
         } catch (err) {
@@ -79,7 +77,7 @@ export const DataProvider = ({ children }) => {
     const fetchTouristByDtid = useCallback(async (dtid) => {
         if (!dtid || touristsMap[dtid]) return touristsMap[dtid];
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/tourists/${dtid}`);
+            const response = await apiClient.get(`/api/tourists/${dtid}`);
             if (response.data) {
                 setTouristsMap(prev => ({ ...prev, [dtid]: response.data }));
                 return response.data;

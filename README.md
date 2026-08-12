@@ -1,115 +1,64 @@
-# Tourist Geo-Fencing - Registration System
+# Tourist Safety & Digital Tourist ID (DTID) Geofencing System
 
-This repository contains the backend and frontend for the Tourist Registration System with Blockchain integration support.
+A production-ready Node.js/Express + Firebase Admin backend and React/Vite frontend application for registering tourists, issuing Digital Tourist IDs (DTID), real-time geofence safety monitoring, and emergency response management.
 
-## 📁 Project Structure
+## 🚀 Key Features
 
-```
-├── backend/          # Node.js Express backend with Firebase
-├── frontend/         # React frontend for tourist registration
-└── blockchain/       # Smart contracts (optional - for future deployment)
-```
+- **DTID Registration & Verification**: Secure traveler registration with full Aadhaar/Passport PII hashing (`HMAC-SHA256`) and masked display (`•••• •••• 1234`).
+- **Zero-Trust Security**: Server-side request validation using **Zod** schema enforcement and Firebase Auth JWT token authentication for administrative routes.
+- **Real-time SOS Alert System**: Instant emergency notification triggers using Firebase Firestore `onSnapshot` real-time listeners (no HTTP polling overhead).
+- **Spark Plan Optimized Data Pipeline**: Centralized state management via `DataContext` with query limits (`limit(50)`) and cursor pagination to preserve cloud quota limits.
+- **Geofence Safety Dashboard**: Interactive regional map grids, active traveler status tracking, and automated overdue check-out detection.
 
-## 🚀 Features
+---
 
-- **Tourist Registration**: Register tourists with personal and trip details
-- **Firebase Integration**: Authentication and Firestore database
-- **Safety Monitoring**: Panic alerts and missing complaints tracking
+## 🛠️ Technology Stack
 
-## 🛠️ Setup Instructions
+- **Frontend**: React 18, Vite, Lucide Icons, Vanilla CSS Design System, Firebase Auth & Firestore Client SDK.
+- **Backend**: Node.js, Express.js, Firebase Admin SDK, Zod, Crypto (HMAC-SHA256), Express Rate Limit.
+- **Authentication**: Firebase Auth with JWT bearer tokens for secure official/admin access.
 
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
-- Firebase account and project
+---
 
-### Backend Setup
+## 📋 Prerequisites & Setup
 
-1. Navigate to backend directory:
-```bash
-cd backend
-```
+### 1. Environment Configuration
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file with your Firebase credentials:
+Create a `.env` file in `/backend`:
 ```env
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+PORT=3000
+AADHAAR_HMAC_SECRET=your_secure_random_hmac_secret_key
+ALLOWED_ORIGINS=http://localhost:5173,https://yourdomain.com
+FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 ```
 
-4. Start the backend:
-```bash
-npm start
-# or on Windows
-start.bat
-```
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file:
+Create a `.env` file in `/frontend`:
 ```env
 VITE_API_URL=http://localhost:3000
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
 ```
 
-4. Start the development server:
+### 2. Installation
+
+In `/backend`:
 ```bash
+npm install
 npm run dev
 ```
 
-## 📱 Flutter App Integration
+In `/frontend`:
+```bash
+npm install
+npm run dev
+```
 
-The Flutter app ([tourist_geo_fencing](../tourist_geo_fencing)) connects to this backend for:
-- User authentication (email + DTID)
-- Tourist status verification
-- Safety alert management
+---
 
-## 🔐 Security Notes
+## 🔒 Security Architecture Highlights
 
-- **Never commit `.env` files** - they contain sensitive Firebase credentials
-- The `.env` file is gitignored by default
-- Create `.env.example` files as templates without actual credentials
-
-## 🌐 API Endpoints
-
-### Backend API (Port 3000)
-- `POST /api/register` - Register new tourist
-- `POST /api/is-active` - Check tourist active status
-- `GET /api/tourists` - List all tourists
-- `GET /api/tourists/:dtid` - Get tourist by DTID
-- `GET /api/panic-alerts` - Get panic alert emergencies
-- `GET /api/safety-alerts` - Get safety alerts
-
-## 📦 Deployment
-
-The system is designed to work **without blockchain deployment** for simpler setup:
-- Backend uses Firebase for data storage
-- DTID generation via UUID (not blockchain)
-- All authentication through Firebase Auth
-
-For blockchain features (optional):
-- Deploy smart contracts in the `blockchain` folder
-- Uncomment blockchain endpoints in backend
-- Update environment variables with contract addresses
-
-## 📄 License
-
-This is a SIH (Smart India Hackathon) project.
-
-## 🤝 Contributing
-
-This is a hackathon project. For the main tourist geo-fencing Flutter app, see the parent directory.
+1. **PII Data Protection**: Sensitive Aadhaar and Passport numbers are hashed with server-side `HMAC-SHA256` secrets prior to database persistence. Only masked last-4 digits are retained for display.
+2. **Server-Side Input Sanitization**: All registration payloads are validated against strict Zod schemas on the backend API prior to processing.
+3. **Restricted CORS Policy**: Wildcard (`*`) origin access is disallowed; strict origin whitelisting is required for cross-domain requests.
+4. **Token-Gated Routes**: Critical admin endpoints (`/api/tourists`, `/api/panic-alerts`, `/api/safety-alerts`) enforce Firebase Auth Bearer token verification.

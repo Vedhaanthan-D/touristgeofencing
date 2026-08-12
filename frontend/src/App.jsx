@@ -5,29 +5,35 @@ import Registration from './components/Registration';
 import Dashboard from './components/Dashboard';
 import PanicAlerts from './components/PanicAlerts';
 import MissingComplaints from './components/MissingComplaints';
+import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import SOSToast from './components/SOSToast';
 import './App.css';
 
+/** Main application component defining provider hierarchy and protected route structure. */
 function App() {
     return (
-        <DataProvider>
-            <Router>
-                <div className="app-container">
-                    <Navigation />
-                    <SOSToast />
+        <AuthProvider>
+            <DataProvider>
+                <Router>
+                    <div className="app-container">
+                        <Navigation />
+                        <SOSToast />
 
-                    
-                    <Routes>
-                        <Route path="/" element={<TouristList />} />
-                        <Route path="/register" element={<Registration />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/panic-alerts" element={<PanicAlerts />} />
-                        <Route path="/missing-complaints" element={<MissingComplaints />} />
-                    </Routes>
-                </div>
-            </Router>
-        </DataProvider>
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Registration />} />
+                            <Route path="/" element={<ProtectedRoute><TouristList /></ProtectedRoute>} />
+                            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                            <Route path="/panic-alerts" element={<ProtectedRoute><PanicAlerts /></ProtectedRoute>} />
+                            <Route path="/missing-complaints" element={<ProtectedRoute><MissingComplaints /></ProtectedRoute>} />
+                        </Routes>
+                    </div>
+                </Router>
+            </DataProvider>
+        </AuthProvider>
     );
 }
 

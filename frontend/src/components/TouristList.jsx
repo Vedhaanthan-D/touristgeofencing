@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import axios from 'axios';
 import { 
     Search, AlertTriangle, RefreshCw, Users, SearchX, 
     ShieldCheck, Clock, MapPin, Phone, Mail, Calendar, 
@@ -8,45 +7,24 @@ import {
 import { useData } from '../contexts/DataContext';
 import './TouristList.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 function TouristList() {
-    const { tourists: globalTourists, fetchTourists: refreshGlobalTourists } = useData();
-    const [tourists, setTourists] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { 
+        tourists, 
+        loadingTourists: loading, 
+        fetchTourists: refreshGlobalTourists 
+    } = useData();
+
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
     const [selectedTourist, setSelectedTourist] = useState(null);
     const [copiedDtid, setCopiedDtid] = useState(null);
 
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/tourists`);
-            const data = Array.isArray(response.data) ? response.data : [];
-            setTourists(data);
-        } catch (err) {
-            console.error('Error loading tourist list:', err);
-            if (globalTourists && globalTourists.length > 0) {
-                setTourists(globalTourists);
-            } else {
-                setError('Failed to load tourist data. Please check backend connection.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [globalTourists]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-
-    const handleRefresh = () => {
-        refreshGlobalTourists();
-        loadData();
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await refreshGlobalTourists();
+        setIsRefreshing(false);
     };
 
     const handleCopyDtid = (dtid, e) => {
@@ -118,22 +96,6 @@ function TouristList() {
                     <div className="loading-spinner"></div>
                     <h3>Loading Tourist Directory...</h3>
                     <p>Retrieving registered profiles from Firebase database...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error && tourists.length === 0) {
-        return (
-            <div className="tl-page-wrapper">
-                <div className="error-container">
-                    <AlertTriangle size={48} color="#EF4444" />
-                    <h2>Database Connection Error</h2>
-                    <p>{error}</p>
-                    <button onClick={handleRefresh} className="retry-button">
-                        <RefreshCw size={16} />
-                        Retry Connection
-                    </button>
                 </div>
             </div>
         );
@@ -438,7 +400,7 @@ function TouristList() {
                             <div className="drawer-section-card">
                                 <h4>Personal Information</h4>
                                 <div className="drawer-grid-2">
-                                    <div><span>Aadhaar / Passport:</span> <strong>{selectedTourist.aadhaar || selectedTourist['aadhaar/passport'] || 'N/A'}</strong></div>
+                                    <div><span>Aadhaar / Passport:</span> <strong>{selectedTourist.aadhaarLast4 ? `•••• •••• ${selectedTourist.aadhaarLast4}` : (selectedTourist.aadhaar ? `•••• •••• ${String(selectedTourist.aadhaar).slice(-4)}` : 'N/A')}</strong></div>
                                     <div><span>Age / Gender:</span> <strong>{selectedTourist.age ? `${selectedTourist.age} yrs` : 'N/A'} • {selectedTourist.gender || 'N/A'}</strong></div>
                                     <div><span>Mobile Number:</span> <strong>{selectedTourist.mobileNumber || 'N/A'}</strong></div>
                                     <div><span>Email Address:</span> <strong>{selectedTourist.email || 'N/A'}</strong></div>

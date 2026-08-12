@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { apiClient } from '../config/api';
 import { AlertTriangle, MapPin, X, Clock } from 'lucide-react';
 import './SOSToast.css';
 
-const POLL_INTERVAL = 5000; // 5 seconds
 const TOAST_DURATION = 10000; // 10 seconds
 
 function playEmergencySound(audioCtx, isIdle = false) {
-    // SOS: fast two-tone square alarm; Idle: slower descending triangle chime
-    const frequencies = isIdle ? [523, 392] : [880, 660]; // C5→G4 for idle; alarm tones for SOS
+    const frequencies = isIdle ? [523, 392] : [880, 660];
     const beepDuration = isIdle ? 0.6 : 0.25;
-    const volume = isIdle ? 0.1 : 0.15; // SOS reduced ~40% from original; idle softer & distinct
+    const volume = isIdle ? 0.1 : 0.15;
     let time = audioCtx.currentTime;
     const totalBeeps = Math.floor(TOAST_DURATION / 1000 / beepDuration);
 
@@ -37,7 +37,6 @@ function SOSToastItem({ alert, tourist, kind, onDismiss }) {
     const lng = alert.longitude ?? alert?.location?.longitude ?? null;
 
     const openMap = (e) => {
-        // Don't navigate if user clicked the close button
         if (e.target.closest('.sos-toast-close')) return;
         if (lat != null && lng != null) {
             window.open(`https://www.google.com/maps?q=${lat},${lng}&z=16`, '_blank', 'noopener');
@@ -104,7 +103,7 @@ export default function SOSToast() {
     const fetchTourist = useCallback(async (dtid) => {
         if (!dtid || touristCacheRef.current[dtid]) return;
         try {
-            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/tourists/${dtid}`);
+            const { data } = await apiClient.get(`/api/tourists/${dtid}`);
             touristCacheRef.current[dtid] = data;
             setToasts(prev => prev.map(t => t.alert.dtid === dtid ? { ...t, tourist: data } : t));
         } catch { /* fall back to DTID display */ }
@@ -122,62 +121,76 @@ export default function SOSToast() {
         } catch { /* AudioContext may be blocked */ }
     }, []);
 
-    // Poll panic alerts (SOS)
+    // Real-time listener for panic alerts (SOS) using Firebase onSnapshot
     useEffect(() => {
-        let cancelled = false;
-        const poll = async () => {
-            try {
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/panic-alerts`);
-                const list = Array.isArray(data) ? data : [];
-                if (seenSosRef.current === null) {
-                    seenSosRef.current = new Set(list.map(a => a.id));
-                    return;
-                }
-                const newAlerts = list.filter(a => !seenSosRef.current.has(a.id));
-                if (!newAlerts.length) return;
-                newAlerts.forEach(a => seenSosRef.current.add(a.id));
-                if (!cancelled) {
-                    await playSound(false);
-                    setToasts(prev => [
-                        ...prev,
-                        ...newAlerts.map(a => ({ id: `sos-${a.id}`, alert: a, kind: 'sos', tourist: touristCacheRef.current[a.dtid] || null }))
-                    ]);
-                    newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
-                }
-            } catch { /* silently ignore */ }
-        };
-        poll();
-        const interval = setInterval(poll, POLL_INTERVAL);
-        return () => { cancelled = true; clearInterval(interval); };
+        let q;
+        try {
+            q = query(
+                collection(db, 'panic_alert_emergencies'),
+                orderBy('createdAt', 'desc'),
+                limit(20)
+            );
+        } catch (err) {
+            console.error('Error setting up panic alerts query:', err);
+            return;
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (seenSosRef.current === null) {
+                seenSosRef.current = new Set(list.map(a => a.id));
+                return;
+            }
+            const newAlerts = list.filter(a => !seenSosRef.current.has(a.id));
+            if (!newAlerts.length) return;
+            newAlerts.forEach(a => seenSosRef.current.add(a.id));
+            playSound(false);
+            setToasts(prev => [
+                ...prev,
+                ...newAlerts.map(a => ({ id: `sos-${a.id}`, alert: a, kind: 'sos', tourist: touristCacheRef.current[a.dtid] || null }))
+            ]);
+            newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
+        }, (error) => {
+            console.warn('Real-time panic alert listener warning:', error);
+        });
+
+        return () => unsubscribe();
     }, [playSound, fetchTourist]);
 
-    // Poll safety alerts (Idle)
+    // Real-time listener for safety alerts (Idle) using Firebase onSnapshot
     useEffect(() => {
-        let cancelled = false;
-        const poll = async () => {
-            try {
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/safety-alerts`);
-                const list = Array.isArray(data) ? data : [];
-                if (seenIdleRef.current === null) {
-                    seenIdleRef.current = new Set(list.map(a => a.id));
-                    return;
-                }
-                const newAlerts = list.filter(a => !seenIdleRef.current.has(a.id));
-                if (!newAlerts.length) return;
-                newAlerts.forEach(a => seenIdleRef.current.add(a.id));
-                if (!cancelled) {
-                    await playSound(true);
-                    setToasts(prev => [
-                        ...prev,
-                        ...newAlerts.map(a => ({ id: `idle-${a.id}`, alert: a, kind: 'idle', tourist: touristCacheRef.current[a.dtid] || null }))
-                    ]);
-                    newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
-                }
-            } catch { /* silently ignore */ }
-        };
-        poll();
-        const interval = setInterval(poll, POLL_INTERVAL);
-        return () => { cancelled = true; clearInterval(interval); };
+        let q;
+        try {
+            q = query(
+                collection(db, 'safety_alerts'),
+                orderBy('createdAt', 'desc'),
+                limit(20)
+            );
+        } catch (err) {
+            console.error('Error setting up safety alerts query:', err);
+            return;
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (seenIdleRef.current === null) {
+                seenIdleRef.current = new Set(list.map(a => a.id));
+                return;
+            }
+            const newAlerts = list.filter(a => !seenIdleRef.current.has(a.id));
+            if (!newAlerts.length) return;
+            newAlerts.forEach(a => seenIdleRef.current.add(a.id));
+            playSound(true);
+            setToasts(prev => [
+                ...prev,
+                ...newAlerts.map(a => ({ id: `idle-${a.id}`, alert: a, kind: 'idle', tourist: touristCacheRef.current[a.dtid] || null }))
+            ]);
+            newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
+        }, (error) => {
+            console.warn('Real-time safety alert listener warning:', error);
+        });
+
+        return () => unsubscribe();
     }, [playSound, fetchTourist]);
 
     if (toasts.length === 0) return null;

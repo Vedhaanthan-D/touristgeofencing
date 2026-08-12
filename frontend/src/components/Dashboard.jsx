@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 import { useData } from '../contexts/DataContext';
 import {
     Users,
@@ -31,21 +31,16 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 function Dashboard() {
     const { 
-        tourists: globalTourists, 
+        tourists, 
         panicAlerts, 
-        refreshTrigger, 
-        isNewRegistration, 
+        isNewRegistration,
+        loadingTourists: loading,
         fetchTourists: refreshGlobalTourists 
     } = useData();
 
-    const [tourists, setTourists] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [error, setError] = useState(null);
     const [selectedTourist, setSelectedTourist] = useState(null);
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'returning-soon' | 'overdue' | 'returned'
@@ -53,37 +48,11 @@ function Dashboard() {
     const [copiedDtid, setCopiedDtid] = useState(null);
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
-    // Fetch tourists from API
-    const fetchTouristsData = useCallback(async () => {
-        try {
-            setIsRefreshing(true);
-            const response = await axios.get(`${API_BASE_URL}/api/tourists`);
-            const touristsData = Array.isArray(response.data) ? response.data : [];
-            setTourists(touristsData);
-            setError(null);
-            setLastRefreshed(new Date());
-        } catch (err) {
-            console.error('Error fetching tourists:', err);
-            if (globalTourists && globalTourists.length > 0) {
-                setTourists(globalTourists);
-            } else {
-                setError('Failed to load tourist data. Please check backend connection.');
-            }
-        } finally {
-            setLoading(false);
-            setIsRefreshing(false);
-        }
-    }, [globalTourists]);
-
-    useEffect(() => {
-        fetchTouristsData();
-        const interval = setInterval(fetchTouristsData, 120000); // 2 mins polling
-        return () => clearInterval(interval);
-    }, [fetchTouristsData, refreshTrigger]);
-
-    const handleManualRefresh = () => {
-        refreshGlobalTourists();
-        fetchTouristsData();
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        await refreshGlobalTourists();
+        setLastRefreshed(new Date());
+        setIsRefreshing(false);
     };
 
     // Calculate status of a tourist
@@ -191,22 +160,6 @@ function Dashboard() {
                     <div className="spinner"></div>
                     <h3>Loading Dashboard...</h3>
                     <p>Fetching live tourist geofencing records...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error && tourists.length === 0) {
-        return (
-            <div className="db-page-wrapper">
-                <div className="db-error-container">
-                    <AlertTriangle size={52} className="db-error-icon" />
-                    <h3>Dashboard Unavailable</h3>
-                    <p>{error}</p>
-                    <button onClick={handleManualRefresh} className="btn btn-primary mt-md">
-                        <RefreshCw size={18} />
-                        Retry Connection
-                    </button>
                 </div>
             </div>
         );

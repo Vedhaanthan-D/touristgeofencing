@@ -2,27 +2,42 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
+const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const Tourist = require('./models/Tourist');
 const { admin, db } = require('./firebase-config');
+const authenticateToken = require('./middleware/authenticateToken');
+const registerRateLimiter = require('./middleware/registerRateLimiter');
+const validateRegistration = require('./middleware/validateRegistration');
 
+const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(bodyParser.json());
-const cors = require('cors');
 
-// Allow all origins (for development only)
-app.use(cors());
+// CORS Configuration with strict origin checking
+let corsOptions;
+if (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.trim()) {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
+    corsOptions = { origin: allowedOrigins, credentials: true };
+} else {
+    console.warn('⚠️  ALLOWED_ORIGINS environment variable is not configured. Cross-origin requests will be rejected.');
+    corsOptions = { origin: false, credentials: true };
+}
+app.use(cors(corsOptions));
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });
 });
 
+if (!process.env.AADHAAR_HMAC_SECRET) {
+    throw new Error('FATAL: AADHAAR_HMAC_SECRET environment variable is missing.');
+}
+
 // Firebase connection verification
 console.log('Firebase Admin SDK initialized successfully');
 console.log('Project ID:', admin.app().options.projectId);
-console.log('✅ Backend running WITHOUT blockchain (deployment mode)');
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', registerRateLimiter, validateRegistration, async (req, res) => {
     const { 
         aadhaar, 
         fullName, 
@@ -36,7 +51,9 @@ app.post('/api/register', async (req, res) => {
     } = req.body;
 
     const dtid = uuidv4();
-    const aadhaarHash = crypto.createHash('sha256').update(aadhaar).digest('hex');
+    const aadhaarString = String(aadhaar || '').trim();
+    const aadhaarHash = crypto.createHmac('sha256', process.env.AADHAAR_HMAC_SECRET).update(aadhaarString).digest('hex');
+    const aadhaarLast4 = aadhaarString.slice(-4);
     
     // Set start date as current date and use provided return date
     const currentDate = new Date().toISOString().split('T')[0];
@@ -46,7 +63,6 @@ app.post('/api/register', async (req, res) => {
         returnDate: tripDetails.returnDate
     };
     
-    const tripHash = crypto.createHash('sha256').update(JSON.stringify(updatedTripDetails)).digest('hex');
     const issuedAt = Math.floor(Date.now() / 1000);
     const returnDate = Math.floor(new Date(tripDetails.returnDate).getTime() / 1000);
     
@@ -54,13 +70,24 @@ app.post('/api/register', async (req, res) => {
     const numberOfTravellers = 1 + (familyMembers ? familyMembers.length : 0);
 
     try {
-        // Register tourist (without blockchain for easy deployment)
+        // Check if an active tourist pass already exists for this Aadhaar hash
+        const existingSnapshot = await db.collection('tourists')
+            .where('aadhaarHash', '==', aadhaarHash)
+            .where('isActive', '==', true)
+            .get();
+
+        if (!existingSnapshot.empty) {
+            return res.status(400).json({ error: 'An active tourist pass already exists for this Aadhaar/Passport.' });
+        }
+
+        // Register tourist
         console.log('📝 Registering tourist:', fullName);
 
         // Save to Firebase Firestore
         const tourist = new Tourist({ 
             dtid, 
-            aadhaar,
+            aadhaarHash,
+            aadhaarLast4,
             fullName,
             age,
             gender,
@@ -77,17 +104,17 @@ app.post('/api/register', async (req, res) => {
         await tourist.save();
         console.log('💾 Saved to Firestore');
 
-        // Create or update Firebase Auth user with DTID as password
+        // Create or update Firebase Auth user with a random secret
         try {
+            const randomAuthPassword = crypto.randomBytes(16).toString('hex');
             let userRecord;
             try {
                 userRecord = await admin.auth().getUserByEmail(email);
             } catch (innerErr) {
-                // If not found, create user
                 if (innerErr && innerErr.code === 'auth/user-not-found') {
                     userRecord = await admin.auth().createUser({
                         email,
-                        password: dtid,
+                        password: randomAuthPassword,
                         displayName: fullName,
                         emailVerified: true,
                     });
@@ -97,106 +124,110 @@ app.post('/api/register', async (req, res) => {
                 }
             }
 
-            // If user exists, update password to current DTID to keep in sync
             if (userRecord) {
                 await admin.auth().updateUser(userRecord.uid, {
-                    password: dtid,
+                    password: randomAuthPassword,
                     displayName: fullName,
                 });
                 console.log('🔄 Updated Firebase Auth user');
             }
         } catch (authErr) {
             console.error('⚠️  Firebase Auth sync error:', authErr);
-            // Do not fail registration due to auth sync issues; client can retry sign-in
         }
 
-        // Return success response (without blockchain)
+        // Return success response
         res.json({ 
             dtid, 
+            aadhaarLast4,
             status: 'success',
-            message: 'Tourist registered successfully without blockchain'
+            message: 'Tourist registered successfully'
         });
 
     } catch (err) {
         console.error('Registration error:', err);
-        const errorMessage = err.message || 'Registration failed. Please try again.';
-        res.status(500).json({ 
-            error: errorMessage
-        });
+        res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
-const updateTouristStatus = async (tourist) => {
+const computeTouristActiveStatus = (tourist) => {
     const currentTime = Math.floor(Date.now() / 1000);
-    if (currentTime > tourist.returnDate && tourist.isActive) {
-        await tourist.update({ isActive: false });
-    }
-    return tourist;
+    const isActive = tourist.isActive && currentTime <= tourist.returnDate;
+    return { ...tourist, isActive };
 };
 
-app.get('/api/tourists', async (req, res) => {
+app.get('/api/tourists', authenticateToken, async (req, res) => {
     try {
-        const data = await Tourist.find();
+        const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+        const startAfter = req.query.startAfter ? String(req.query.startAfter) : null;
+        const data = await Tourist.find({ limit: limitParam, startAfter });
 
-        // Calculate status on the fly without writing to Firestore
-        // This prevents unnecessary writes on every read
-        const currentTime = Math.floor(Date.now() / 1000);
-        const updatedData = data.map(tourist => {
-            // Calculate isActive based on returnDate without writing to DB
-            const isActive = tourist.isActive && currentTime <= tourist.returnDate;
-            return { ...tourist, isActive };
-        });
+        // Calculate status on the fly without writing to Firestore during GET reads
+        const updatedData = data.map(tourist => computeTouristActiveStatus(tourist));
 
         res.json(updatedData);
     } catch (err) {
         console.error('Error fetching tourists:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
 // Fetch single tourist by DTID
-app.get('/api/tourists/:dtid', async (req, res) => {
+app.get('/api/tourists/:dtid', authenticateToken, async (req, res) => {
     const { dtid } = req.params;
     if (!dtid) return res.status(400).json({ error: 'dtid is required' });
 
     try {
         const tourist = await Tourist.findByDtid(dtid);
         if (!tourist) return res.status(404).json({ error: 'Tourist not found' });
-        const updated = await updateTouristStatus(tourist);
+        const updated = computeTouristActiveStatus(tourist);
         return res.json(updated);
     } catch (err) {
         console.error('Error fetching tourist by dtid:', err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
 // Fetch panic alert emergencies
-app.get('/api/panic-alerts', async (req, res) => {
+app.get('/api/panic-alerts', authenticateToken, async (req, res) => {
     try {
-        const snapshot = await db
-            .collection('panic_alert_emergencies')
-            .orderBy('createdAt', 'desc')
-            .get();
+        const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+        let queryRef = db.collection('panic_alert_emergencies').orderBy('createdAt', 'desc').limit(limitParam);
+
+        if (req.query.startAfter) {
+            const startDoc = await db.collection('panic_alert_emergencies').doc(String(req.query.startAfter)).get();
+            if (startDoc.exists) {
+                queryRef = queryRef.startAfter(startDoc);
+            }
+        }
+
+        const snapshot = await queryRef.get();
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.json(data);
     } catch (err) {
         console.error('Error fetching panic alerts:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
 // Fetch safety alerts (for missing complaints screen)
-app.get('/api/safety-alerts', async (req, res) => {
+app.get('/api/safety-alerts', authenticateToken, async (req, res) => {
     try {
-        const snapshot = await db
-            .collection('safety_alerts')
-            .orderBy('createdAt', 'desc')
-            .get();
+        const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+        let queryRef = db.collection('safety_alerts').orderBy('createdAt', 'desc').limit(limitParam);
+
+        if (req.query.startAfter) {
+            const startDoc = await db.collection('safety_alerts').doc(String(req.query.startAfter)).get();
+            if (startDoc.exists) {
+                queryRef = queryRef.startAfter(startDoc);
+            }
+        }
+
+        const snapshot = await queryRef.get();
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.json(data);
     } catch (err) {
         console.error('Error fetching safety alerts:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
@@ -213,8 +244,8 @@ app.post('/api/is-active', async (req, res) => {
             return res.status(404).json({ error: 'Tourist not found' });
         }
 
-        // Ensure status is up-to-date based on returnDate
-        const updated = await updateTouristStatus(tourist);
+        // Ensure status is calculated dynamically
+        const updated = computeTouristActiveStatus(tourist);
 
         // Basic email match validation
         if (String(updated.email).toLowerCase() !== String(email).toLowerCase()) {
@@ -224,25 +255,8 @@ app.post('/api/is-active', async (req, res) => {
         return res.json({ dtid: updated.dtid, isActive: !!updated.isActive });
     } catch (err) {
         console.error('Error checking active status:', err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Something went wrong, please try again.' });
     }
 });
 
-// BLOCKCHAIN ENDPOINTS DISABLED FOR DEPLOYMENT
-// Uncomment these if you want to use blockchain features
-
-// app.get('/api/verify-blockchain/:dtid', async (req, res) => {
-//     const { dtid } = req.params;
-//     res.status(503).json({ 
-//         verified: false,
-//         error: 'Blockchain verification disabled for deployment' 
-//     });
-// });
-
-// app.get('/api/blockchain-info', async (req, res) => {
-//     res.status(503).json({ 
-//         error: 'Blockchain info disabled for deployment' 
-//     });
-// });
-
-app.listen(3000, () => console.log('Backend running at http://localhost:3000'));
+app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));

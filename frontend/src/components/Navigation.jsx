@@ -1,9 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, UserPlus, Siren, UserSearch } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Siren, UserSearch, LogOut, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import './Navigation.css';
 
+/** Renders top navigation bar with routing links and user authentication status. */
 function Navigation() {
     const location = useLocation();
+    const { user, logout } = useAuth();
 
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -48,6 +51,22 @@ function Navigation() {
                             </Link>
                         );
                     })}
+
+                    {user ? (
+                        <button onClick={logout} className="nav-link nav-logout-btn" title={`Logged in as ${user.email}`}>
+                            <div className="nav-icon-box">
+                                <LogOut size={20} className="link-icon" />
+                            </div>
+                            <span className="nav-label-text">Logout</span>
+                        </button>
+                    ) : (
+                        <Link to="/login" className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}>
+                            <div className="nav-icon-box">
+                                <LogIn size={20} className="link-icon" />
+                            </div>
+                            <span className="nav-label-text">Login</span>
+                        </Link>
+                    )}
                 </div>
             </div>
         </nav>

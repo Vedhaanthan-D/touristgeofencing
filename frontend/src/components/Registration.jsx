@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 import './Registration.css';
 
 function Registration() {
@@ -185,7 +185,7 @@ function Registration() {
         try {
             const validContacts = formData.emergencyContacts.filter(c => c.name && c.phone);
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/register`, {
+            const response = await apiClient.post('/api/register', {
                 aadhaar: formData.aadhaar,
                 fullName: formData.fullName,
                 age: parseInt(formData.age),
@@ -199,7 +199,7 @@ function Registration() {
 
             setSuccess({
                 dtid: response.data.dtid,
-                aadhaar: formData.aadhaar,
+                aadhaarLast4: response.data.aadhaarLast4 || formData.aadhaar.slice(-4),
                 fullName: formData.fullName,
                 age: formData.age,
                 gender: formData.gender,
@@ -422,7 +422,7 @@ function Registration() {
                                             </tr>
                                             <tr>
                                                 <td className="tbl-label">ID / Aadhaar No:</td>
-                                                <td className="tbl-val">{success.aadhaar}</td>
+                                                <td className="tbl-val">•••• •••• {success.aadhaarLast4}</td>
                                                 <td className="tbl-label">Issue Date:</td>
                                                 <td className="tbl-val">{success.issuedAt}</td>
                                             </tr>
@@ -565,9 +565,10 @@ function Registration() {
                                                 type="button" 
                                                 onClick={handleSimulateScan}
                                                 className="btn-scan-qr"
+                                                title="Demo mode: fills sample ID data"
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                                                Scan ID / QR Code
+                                                Scan ID / QR Code (Demo Stub)
                                             </button>
                                         </div>
                                         <div className="input-icon-wrapper">
@@ -886,7 +887,7 @@ function Registration() {
                                             </div>
                                             <div>
                                                 <span>Aadhaar / Passport:</span>
-                                                <strong>{formData.aadhaar || 'Not provided'}</strong>
+                                                <strong>{formData.aadhaar ? `•••• •••• ${formData.aadhaar.slice(-4)}` : 'Not provided'}</strong>
                                             </div>
                                             <div>
                                                 <span>Destination:</span>
