@@ -9,7 +9,7 @@ function Navigation() {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/', label: 'Tourist List', icon: Users },
         { path: '/register', label: 'Register', icon: UserPlus },
-        { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren },
+        { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren, isAlert: true },
         { path: '/missing-complaints', label: 'Missing', icon: UserSearch },
     ];
 
@@ -31,16 +31,23 @@ function Navigation() {
                 </Link>
 
                 <div className="nav-links">
-                    {navItems.map(({ path, label, icon: Icon }) => (
-                        <Link
-                            key={path}
-                            to={path}
-                            className={`nav-link ${location.pathname === path ? 'active' : ''}`}
-                        >
-                            <Icon size={18} className="link-icon" />
-                            <span>{label}</span>
-                        </Link>
-                    ))}
+                    {navItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`nav-link ${isActive ? 'active' : ''} ${item.isAlert ? 'nav-link-alert' : ''}`}
+                            >
+                                <div className="nav-icon-box">
+                                    <Icon size={20} className="link-icon" />
+                                    {item.isAlert && <span className="alert-ping-dot"></span>}
+                                </div>
+                                <span className="nav-label-text">{item.label}</span>
+                            </Link>
+                        );
+                    })}
                 </div>
             </div>
         </nav>

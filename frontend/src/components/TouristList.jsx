@@ -1,127 +1,69 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Search, AlertTriangle, RefreshCw, Users, SearchX } from 'lucide-react';
+import { 
+    Search, AlertTriangle, RefreshCw, Users, SearchX, 
+    ShieldCheck, Clock, MapPin, Phone, Mail, Calendar, 
+    Eye, X, Copy, Check, Filter, UserCheck, LayoutGrid, Table as TableIcon 
+} from 'lucide-react';
+import { useData } from '../contexts/DataContext';
 import './TouristList.css';
 
-// Cache configuration
-const CACHE_KEY = 'touristList_cache';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function TouristList() {
+    const { tourists: globalTourists, fetchTourists: refreshGlobalTourists } = useData();
     const [tourists, setTourists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+    const [selectedTourist, setSelectedTourist] = useState(null);
+    const [copiedDtid, setCopiedDtid] = useState(null);
 
-    // Check if cache is valid
-    const getCachedData = useCallback(() => {
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const cached = sessionStorage.getItem(CACHE_KEY);
-            if (cached) {
-                const { data, timestamp } = JSON.parse(cached);
-                if (Date.now() - timestamp < CACHE_DURATION) {
-                    return data;
-                }
+            const response = await axios.get(`${API_BASE_URL}/api/tourists`);
+            const data = Array.isArray(response.data) ? response.data : [];
+            setTourists(data);
+        } catch (err) {
+            console.error('Error loading tourist list:', err);
+            if (globalTourists && globalTourists.length > 0) {
+                setTourists(globalTourists);
+            } else {
+                setError('Failed to load tourist data. Please check backend connection.');
             }
-        } catch (err) {
-            console.error('Cache read error:', err);
-        }
-        return null;
-    }, []);
-
-    // Save to cache
-    const setCachedData = useCallback((data) => {
-        try {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                data,
-                timestamp: Date.now()
-            }));
-        } catch (err) {
-            console.error('Cache write error:', err);
-        }
-    }, []);
-
-    const fetchTourists = useCallback(async (useCache = true) => {
-        // Try cache first
-        if (useCache) {
-            const cachedData = getCachedData();
-            if (cachedData) {
-                setTourists(cachedData);
-                setLoading(false);
-                setError(null);
-                return;
-            }
-        }
-
-        try {
-            setLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tourists`);
-            setTourists(response.data);
-            setCachedData(response.data);
-            setError(null);
-        } catch (err) {
-            console.error(err);
-            setError('Failed to load tourist data. Please try again later.');
         } finally {
             setLoading(false);
         }
-    }, [getCachedData, setCachedData]);
+    }, [globalTourists]);
 
     useEffect(() => {
-        fetchTourists();
-    }, [fetchTourists]);
+        loadData();
+    }, [loadData]);
 
-    // Force refresh (bypasses cache)
-    const handleRefresh = useCallback(() => {
-        fetchTourists(false);
-    }, [fetchTourists]);
-
-    // Helpers
-    const formatTripDetails = (tripDetails) => {
-        if (!tripDetails) return 'N/A';
-        if (typeof tripDetails === 'string') {
-            try { tripDetails = JSON.parse(tripDetails); } catch { return tripDetails; }
-        }
-        return (
-            <div className="trip-details">
-                {tripDetails.destination && <div><strong>Destination:</strong> {tripDetails.destination}</div>}
-                {tripDetails.startDate && <div><strong>Start Date:</strong> {new Date(tripDetails.startDate).toLocaleDateString('en-IN')}</div>}
-                {tripDetails.returnDate && <div><strong>Return Date:</strong> {new Date(tripDetails.returnDate).toLocaleDateString('en-IN')}</div>}
-                {tripDetails.endDate && <div><strong>End Date:</strong> {new Date(tripDetails.endDate).toLocaleDateString('en-IN')}</div>}
-                {tripDetails.dates && <div><strong>Dates:</strong> {tripDetails.dates}</div>}
-                {tripDetails.purpose && <div><strong>Purpose:</strong> {tripDetails.purpose}</div>}
-            </div>
-        );
+    const handleRefresh = () => {
+        refreshGlobalTourists();
+        loadData();
     };
 
-    const formatEmergencyContacts = (contacts) => {
-        if (!contacts) return 'N/A';
-        if (typeof contacts === 'string') {
-            try { contacts = JSON.parse(contacts); } catch { return contacts; }
-        }
-        if (Array.isArray(contacts)) {
-            return (
-                <div className="emergency-contacts">
-                    {contacts.map((contact, index) => (
-                        <div key={index} className="contact-item">
-                            <div><strong>{contact.name}</strong></div>
-                            <div>{contact.phone}</div>
-                        </div>
-                    ))}
-                </div>
-            );
-        }
-        return contacts.name ? `${contacts.name}: ${contacts.phone}` : JSON.stringify(contacts);
+    const handleCopyDtid = (dtid, e) => {
+        if (e) e.stopPropagation();
+        navigator.clipboard.writeText(dtid);
+        setCopiedDtid(dtid);
+        setTimeout(() => setCopiedDtid(null), 2200);
     };
 
-    const formatDate = (timestamp) => {
+    const formatUnixSecondsToLocale = (timestamp) => {
         if (!timestamp && timestamp !== 0) return 'N/A';
         const num = Number(timestamp);
         const seconds = Number.isFinite(num) ? num : 0;
         const date = new Date(seconds * 1000);
         if (isNaN(date.getTime())) return 'N/A';
-        return date.toLocaleString('en-IN', {
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        return date.toLocaleDateString('en-IN', {
+            year: 'numeric', month: 'short', day: 'numeric'
         });
     };
 
@@ -134,124 +76,422 @@ function TouristList() {
         return returnDate > currentTime;
     };
 
-    const filteredTourists = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return tourists;
-        return tourists.filter(t => String(t.dtid || '').toLowerCase().includes(q));
-    }, [tourists, query]);
+    // Calculate quick stats
+    const stats = useMemo(() => {
+        let active = 0;
+        let inactive = 0;
+        tourists.forEach(t => {
+            if (isValidTouristId(t)) active++;
+            else inactive++;
+        });
+        return { total: tourists.length, active, inactive };
+    }, [tourists]);
 
-    if (loading) {
+    const filteredTourists = useMemo(() => {
+        let result = tourists;
+
+        // Status Filter
+        if (statusFilter === 'active') {
+            result = result.filter(t => isValidTouristId(t));
+        } else if (statusFilter === 'inactive') {
+            result = result.filter(t => !isValidTouristId(t));
+        }
+
+        // Search Query
+        const q = query.trim().toLowerCase();
+        if (q) {
+            result = result.filter(t =>
+                String(t.dtid || '').toLowerCase().includes(q) ||
+                String(t.fullName || '').toLowerCase().includes(q) ||
+                String(t.mobileNumber || '').toLowerCase().includes(q) ||
+                String(t.tripDetails?.destination || '').toLowerCase().includes(q)
+            );
+        }
+
+        return result;
+    }, [tourists, query, statusFilter]);
+
+    if (loading && tourists.length === 0) {
         return (
-            <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Loading tourist records...</p>
+            <div className="tl-page-wrapper">
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <h3>Loading Tourist Directory...</h3>
+                    <p>Retrieving registered profiles from Firebase database...</p>
+                </div>
             </div>
         );
     }
 
-    if (error) {
+    if (error && tourists.length === 0) {
         return (
-            <div className="error-container">
-                <div className="error-icon"><AlertTriangle size={48} color="#E53935" /></div>
-                <h2>Something went wrong</h2>
-                <p>{error}</p>
-                <button onClick={handleRefresh} className="retry-button">
-                    <RefreshCw size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                    Try Again
-                </button>
+            <div className="tl-page-wrapper">
+                <div className="error-container">
+                    <AlertTriangle size={48} color="#EF4444" />
+                    <h2>Database Connection Error</h2>
+                    <p>{error}</p>
+                    <button onClick={handleRefresh} className="retry-button">
+                        <RefreshCw size={16} />
+                        Retry Connection
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="tl-main-content">
-            {/* Page Header + Search */}
-            <div className="tl-header">
-                <div>
-                    <h1 className="tl-page-title">
-                        <Users size={26} color="#2563EB" />
-                        Tourist Records
-                    </h1>
-                    <p className="tl-page-subtitle">Browse and search all registered tourist profiles</p>
-                </div>
-                <div className="search-bar-wrapper">
-                    <Search size={16} />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search by DTID..."
-                        aria-label="Search by DTID"
-                        className="tl-search-input"
-                    />
+        <div className="tl-page-wrapper fade-in">
+            {/* Header Banner */}
+            <div className="tl-hero-header">
+                <div className="tl-hero-content">
+                    <div className="tl-title-row">
+                        <div>
+                            <span className="tl-badge-pill">
+                                <ShieldCheck size={14} /> Official Directory
+                            </span>
+                            <h1 className="tl-main-title">Registered Tourist Directory</h1>
+                            <p className="tl-main-subtitle">
+                                Monitor active traveler status, Digital Tourist IDs (DTID), destinations, and emergency contact profiles.
+                            </p>
+                        </div>
+
+                        {/* Top Stats Cards */}
+                        <div className="tl-stats-strip">
+                            <div className="tl-stat-chip active-chip" onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}>
+                                <span className="stat-num">{stats.active}</span>
+                                <span className="stat-label">Active Travelers</span>
+                            </div>
+                            <div className="tl-stat-chip total-chip" onClick={() => setStatusFilter('all')}>
+                                <span className="stat-num">{stats.total}</span>
+                                <span className="stat-label">Total Registered</span>
+                            </div>
+                            <div className="tl-stat-chip inactive-chip" onClick={() => setStatusFilter(statusFilter === 'inactive' ? 'all' : 'inactive')}>
+                                <span className="stat-num">{stats.inactive}</span>
+                                <span className="stat-label">Returned / Inactive</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {filteredTourists.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-icon"><SearchX size={52} color="#ABABAB" /></div>
-                    <h3>No matching DTID</h3>
-                    <p>Try another DTID or clear the search.</p>
+            {/* Controls Bar */}
+            <div className="tl-main-container">
+                <div className="tl-controls-card">
+                    {/* Search Input */}
+                    <div className="tl-search-wrapper">
+                        <Search size={18} className="search-icon" />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Search by Tourist Name, DTID, Mobile, or Destination..."
+                            className="tl-search-input-field"
+                        />
+                        {query && (
+                            <button onClick={() => setQuery('')} className="btn-clear-search">
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="tl-filter-pills">
+                        <button
+                            className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setStatusFilter('all')}
+                        >
+                            All ({stats.total})
+                        </button>
+                        <button
+                            className={`filter-btn ${statusFilter === 'active' ? 'active' : ''}`}
+                            onClick={() => setStatusFilter('active')}
+                        >
+                            <span className="dot-green"></span> Active ({stats.active})
+                        </button>
+                        <button
+                            className={`filter-btn ${statusFilter === 'inactive' ? 'active' : ''}`}
+                            onClick={() => setStatusFilter('inactive')}
+                        >
+                            <span className="dot-grey"></span> Returned ({stats.inactive})
+                        </button>
+                    </div>
+
+                    {/* View Switcher & Refresh */}
+                    <div className="tl-right-actions">
+                        <div className="view-toggle">
+                            <button
+                                className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                onClick={() => setViewMode('grid')}
+                                title="Grid View"
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                            <button
+                                className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+                                onClick={() => setViewMode('table')}
+                                title="Table View"
+                            >
+                                <TableIcon size={16} />
+                            </button>
+                        </div>
+
+                        <button onClick={handleRefresh} className="btn-refresh-accent" title="Reload Fresh Data">
+                            <RefreshCw size={16} />
+                            <span>Refresh</span>
+                        </button>
+                    </div>
                 </div>
-            ) : (
-                <div className="tl-cards-grid">
-                    {filteredTourists.map((tourist, index) => {
-                        const active = isValidTouristId(tourist);
-                        return (
-                            <div key={tourist.dtid || index} className="tl-card">
-                                {/* Card Top */}
-                                <div className="tl-card-top">
-                                    <div className="tl-card-avatar">
-                                        {(tourist.fullName || 'T').charAt(0).toUpperCase()}
+
+                {/* Empty State */}
+                {filteredTourists.length === 0 ? (
+                    <div className="tl-empty-card">
+                        <SearchX size={56} className="empty-icon-svg" />
+                        <h3>No matching tourist records found</h3>
+                        <p>No profiles match your search criteria "{query}". Try clearing the search query or changing filters.</p>
+                        <button onClick={() => { setQuery(''); setStatusFilter('all'); }} className="btn-reset-filters">
+                            Reset Search Filters
+                        </button>
+                    </div>
+                ) : viewMode === 'grid' ? (
+                    /* GRID VIEW MODE */
+                    <div className="tl-grid-container">
+                        {filteredTourists.map((tourist, index) => {
+                            const active = isValidTouristId(tourist);
+                            return (
+                                <div 
+                                    key={tourist.dtid || index} 
+                                    className="tl-profile-card"
+                                    onClick={() => setSelectedTourist(tourist)}
+                                >
+                                    {/* Card Header Gradient */}
+                                    <div className="tl-profile-header">
+                                        <div className="tl-avatar-circle">
+                                            {(tourist.fullName || 'T').charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="tl-profile-title">
+                                            <h3>{tourist.fullName || 'Registered Tourist'}</h3>
+                                            <span className="tl-profile-meta">
+                                                {tourist.age ? `${tourist.age} yrs` : ''} 
+                                                {tourist.gender ? ` • ${tourist.gender}` : ''}
+                                            </span>
+                                        </div>
+                                        <span className={`tl-status-chip ${active ? 'chip-active' : 'chip-returned'}`}>
+                                            <span className="dot"></span>
+                                            {active ? 'Active' : 'Returned'}
+                                        </span>
                                     </div>
-                                    <div className="tl-card-top-info">
-                                        <div className="tl-card-name">{tourist.fullName || 'N/A'}</div>
-                                        <div className="tl-card-meta">
-                                            {tourist.age ? `${tourist.age} yrs` : ''}
-                                            {tourist.gender ? ` • ${tourist.gender}` : ''}
-                                            {tourist.numberOfTravellers ? ` • ${tourist.numberOfTravellers} traveller${tourist.numberOfTravellers > 1 ? 's' : ''}` : ''}
+
+                                    {/* DTID Bar */}
+                                    <div className="tl-dtid-strip">
+                                        <div className="dtid-text-group">
+                                            <span className="dtid-lbl">DTID</span>
+                                            <code>{tourist.dtid}</code>
+                                        </div>
+                                        <button 
+                                            className="btn-copy-mini"
+                                            onClick={(e) => handleCopyDtid(tourist.dtid, e)}
+                                            title="Copy DTID"
+                                        >
+                                            {copiedDtid === tourist.dtid ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+                                        </button>
+                                    </div>
+
+                                    {/* Details Body */}
+                                    <div className="tl-profile-body">
+                                        <div className="tl-info-row">
+                                            <span className="row-lbl"><MapPin size={14} /> Destination</span>
+                                            <span className="row-val font-highlight">{tourist.tripDetails?.destination || 'N/A'}</span>
+                                        </div>
+                                        <div className="tl-info-row">
+                                            <span className="row-lbl"><Calendar size={14} /> Check-in</span>
+                                            <span className="row-val">{tourist.tripDetails?.startDate || formatUnixSecondsToLocale(tourist.issuedAt)}</span>
+                                        </div>
+                                        <div className="tl-info-row">
+                                            <span className="row-lbl"><Clock size={14} /> Check-out</span>
+                                            <span className="row-val">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</span>
+                                        </div>
+                                        <div className="tl-info-row">
+                                            <span className="row-lbl"><Phone size={14} /> Mobile</span>
+                                            <span className="row-val">{tourist.mobileNumber || 'N/A'}</span>
                                         </div>
                                     </div>
-                                    <span className={`tl-status-pill ${active ? 'active' : 'inactive'}`}>
-                                        {active ? '🟢 Active' : '🔴 Inactive'}
-                                    </span>
-                                </div>
 
-                                {/* DTID */}
-                                <div className="tl-card-dtid">
-                                    <span className="tl-dtid-label">DTID</span>
-                                    <span className="tl-dtid-val">{tourist.dtid}</span>
-                                </div>
-
-                                {/* Details */}
-                                <div className="tl-card-details">
-                                    <div className="tl-card-row">
-                                        <span className="tl-card-row-icon">📍</span>
-                                        <span className="tl-card-row-label">Destination</span>
-                                        <span className="tl-card-row-val">{tourist.tripDetails?.destination || 'N/A'}</span>
-                                    </div>
-                                    <div className="tl-card-row">
-                                        <span className="tl-card-row-icon">📅</span>
-                                        <span className="tl-card-row-label">Check-in</span>
-                                        <span className="tl-card-row-val">{tourist.tripDetails?.startDate || formatDate(tourist.issuedAt)}</span>
-                                    </div>
-                                    <div className="tl-card-row">
-                                        <span className="tl-card-row-icon">🔚</span>
-                                        <span className="tl-card-row-label">Check-out</span>
-                                        <span className="tl-card-row-val">{formatDate(tourist.returnDate || tourist.validTill)}</span>
-                                    </div>
-                                    <div className="tl-card-row">
-                                        <span className="tl-card-row-icon">📞</span>
-                                        <span className="tl-card-row-label">Mobile</span>
-                                        <span className="tl-card-row-val">{tourist.mobileNumber || 'N/A'}</span>
+                                    {/* Card Footer Action */}
+                                    <div className="tl-profile-footer">
+                                        <span className="companion-badge">
+                                            <Users size={13} /> {tourist.numberOfTravellers || 1} Traveller(s)
+                                        </span>
+                                        <button className="btn-view-details">
+                                            <Eye size={14} />
+                                            View Details
+                                        </button>
                                     </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    /* TABLE VIEW MODE */
+                    <div className="tl-table-card">
+                        <div className="table-responsive">
+                            <table className="tl-data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Tourist</th>
+                                        <th>Digital ID (DTID)</th>
+                                        <th>Destination</th>
+                                        <th>Check-in</th>
+                                        <th>Check-out</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredTourists.map((tourist, index) => {
+                                        const active = isValidTouristId(tourist);
+                                        return (
+                                            <tr key={tourist.dtid || index} onClick={() => setSelectedTourist(tourist)}>
+                                                <td className="col-idx">#{index + 1}</td>
+                                                <td>
+                                                    <div className="tbl-user-cell">
+                                                        <div className="tbl-avatar">
+                                                            {(tourist.fullName || 'T').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div className="tbl-user-name">{tourist.fullName || 'N/A'}</div>
+                                                            <div className="tbl-user-sub">{tourist.mobileNumber || 'N/A'}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="tbl-dtid-cell">
+                                                        <code>{tourist.dtid}</code>
+                                                        <button 
+                                                            className="btn-copy-nano"
+                                                            onClick={(e) => handleCopyDtid(tourist.dtid, e)}
+                                                        >
+                                                            {copiedDtid === tourist.dtid ? <Check size={12} color="#10B981" /> : <Copy size={12} />}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="tbl-dest-tag">
+                                                        <MapPin size={13} /> {tourist.tripDetails?.destination || 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td>{tourist.tripDetails?.startDate || formatUnixSecondsToLocale(tourist.issuedAt)}</td>
+                                                <td>{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</td>
+                                                <td>
+                                                    <span className={`tl-status-chip ${active ? 'chip-active' : 'chip-returned'}`}>
+                                                        <span className="dot"></span>
+                                                        {active ? 'Active' : 'Returned'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button className="btn-icon-view" title="View Full Profile">
+                                                        <Eye size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
 
-                                {/* Card Number badge */}
-                                <div className="tl-card-number">#{index + 1}</div>
+            {/* Tourist Detail Drawer Modal */}
+            {selectedTourist && (
+                <div className="tl-drawer-overlay" onClick={() => setSelectedTourist(null)}>
+                    <div className="tl-drawer-panel" onClick={(e) => e.stopPropagation()}>
+                        <div className="tl-drawer-header">
+                            <div className="drawer-avatar-lg">
+                                {(selectedTourist.fullName || 'T').charAt(0).toUpperCase()}
                             </div>
-                        );
-                    })}
+                            <div className="drawer-title-group">
+                                <h2>{selectedTourist.fullName || 'Tourist Record'}</h2>
+                                <span className={`tl-status-chip ${isValidTouristId(selectedTourist) ? 'chip-active' : 'chip-returned'}`}>
+                                    <span className="dot"></span>
+                                    {isValidTouristId(selectedTourist) ? 'Active Safety Tracking' : 'Returned / Record Completed'}
+                                </span>
+                            </div>
+                            <button className="btn-close-drawer" onClick={() => setSelectedTourist(null)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="tl-drawer-dtid-bar">
+                            <label>DIGITAL TOURIST ID (DTID)</label>
+                            <div className="dtid-val-row">
+                                <code>{selectedTourist.dtid}</code>
+                                <button className="dtid-copy-btn" onClick={(e) => handleCopyDtid(selectedTourist.dtid, e)}>
+                                    {copiedDtid === selectedTourist.dtid ? 'Copied!' : 'Copy ID'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="tl-drawer-body">
+                            {/* Personal Details */}
+                            <div className="drawer-section-card">
+                                <h4>Personal Information</h4>
+                                <div className="drawer-grid-2">
+                                    <div><span>Aadhaar / Passport:</span> <strong>{selectedTourist.aadhaar || selectedTourist['aadhaar/passport'] || 'N/A'}</strong></div>
+                                    <div><span>Age / Gender:</span> <strong>{selectedTourist.age ? `${selectedTourist.age} yrs` : 'N/A'} • {selectedTourist.gender || 'N/A'}</strong></div>
+                                    <div><span>Mobile Number:</span> <strong>{selectedTourist.mobileNumber || 'N/A'}</strong></div>
+                                    <div><span>Email Address:</span> <strong>{selectedTourist.email || 'N/A'}</strong></div>
+                                </div>
+                            </div>
+
+                            {/* Trip Plan */}
+                            <div className="drawer-section-card">
+                                <h4>Travel & Itinerary Details</h4>
+                                <div className="drawer-grid-2">
+                                    <div><span>Destination:</span> <strong className="text-primary">{selectedTourist.tripDetails?.destination || 'N/A'}</strong></div>
+                                    <div><span>Check-in Date:</span> <strong>{selectedTourist.tripDetails?.startDate || formatUnixSecondsToLocale(selectedTourist.issuedAt)}</strong></div>
+                                    <div><span>Check-out Date:</span> <strong>{formatUnixSecondsToLocale(selectedTourist.returnDate || selectedTourist.validTill)}</strong></div>
+                                    <div><span>Total Group Size:</span> <strong>{selectedTourist.numberOfTravellers || 1} Member(s)</strong></div>
+                                </div>
+                            </div>
+
+                            {/* Family Members */}
+                            {selectedTourist.familyMembers && selectedTourist.familyMembers.length > 0 && (
+                                <div className="drawer-section-card">
+                                    <h4>Family Members & Group Companions ({selectedTourist.familyMembers.length})</h4>
+                                    <div className="companions-chips">
+                                        {selectedTourist.familyMembers.map((m, i) => (
+                                            <div key={i} className="companion-chip">
+                                                <strong>{m.fullName || m.name || `Companion #${i + 1}`}</strong>
+                                                <span>{m.age ? `${m.age} yrs` : ''} {m.gender ? `• ${m.gender}` : ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Emergency Contacts */}
+                            {selectedTourist.emergencyContacts && selectedTourist.emergencyContacts.length > 0 && (
+                                <div className="drawer-section-card alert-section">
+                                    <h4>Emergency Contacts</h4>
+                                    <div className="emergency-contacts-list">
+                                        {selectedTourist.emergencyContacts.map((c, i) => (
+                                            <div key={i} className="contact-card-row">
+                                                <div>
+                                                    <strong>{c.name || `Contact #${i + 1}`}</strong>
+                                                    <span>{c.phone}</span>
+                                                </div>
+                                                <a href={`tel:${c.phone}`} className="btn-call-contact">
+                                                    <Phone size={14} /> Call
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

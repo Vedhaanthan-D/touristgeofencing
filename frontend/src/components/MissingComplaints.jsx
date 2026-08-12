@@ -2,50 +2,48 @@ import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import axios from "axios";
 import "./MissingComplaints.css";
 import { jsPDF } from "jspdf";
+import { useData } from "../contexts/DataContext";
+import {
+  FileText, Search, RefreshCw, AlertTriangle, MapPin, ExternalLink,
+  Phone, Calendar, Clock, Copy, Check, X, ShieldAlert
+} from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function formatDate(value) {
   if (!value) return "-";
   try {
-    // Firestore Timestamp-like
     if (typeof value === "object" && value) {
       if (typeof value.toDate === "function") {
-        const d = value.toDate();
         return new Intl.DateTimeFormat("en-IN", {
           dateStyle: "medium",
           timeStyle: "medium",
-        }).format(d);
+        }).format(value.toDate());
       }
       if (typeof value.seconds === "number") {
-        const d = new Date(value.seconds * 1000);
         return new Intl.DateTimeFormat("en-IN", {
           dateStyle: "medium",
           timeStyle: "medium",
-        }).format(d);
+        }).format(new Date(value.seconds * 1000));
       }
       if (typeof value._seconds === "number") {
-        const d = new Date(value._seconds * 1000);
         return new Intl.DateTimeFormat("en-IN", {
           dateStyle: "medium",
           timeStyle: "medium",
-        }).format(d);
+        }).format(new Date(value._seconds * 1000));
       }
     }
-
-    // Numeric
     if (
       typeof value === "number" ||
       (typeof value === "string" && /^\d+$/.test(value.trim()))
     ) {
       const num = Number(value);
       const ms = num > 1e12 ? num : num * 1000;
-      const d = new Date(ms);
       return new Intl.DateTimeFormat("en-IN", {
         dateStyle: "medium",
         timeStyle: "medium",
-      }).format(d);
+      }).format(new Date(ms));
     }
-
-    // String possibly prefixed with 'createdAt'
     if (typeof value === "string") {
       const cleaned = value.replace(/^\s*createdAt\s*/i, "").trim();
       const d = new Date(cleaned);
@@ -56,7 +54,6 @@ function formatDate(value) {
         }).format(d);
       }
     }
-
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
       return new Intl.DateTimeFormat("en-IN", {
@@ -92,155 +89,36 @@ function formatSecondsToHHMM(totalSeconds) {
   return `${hh}:${mm}`;
 }
 
-function formatTripDetails(tripDetails) {
-  if (!tripDetails) return "N/A";
-  if (typeof tripDetails === "string") {
-    try {
-      tripDetails = JSON.parse(tripDetails);
-    } catch {
-      return tripDetails;
-    }
-  }
-  return (
-    <div className="mc-trip-details">
-      {tripDetails.destination && (
-        <div>
-          <strong>Destination:</strong> {tripDetails.destination}
-        </div>
-      )}
-      {tripDetails.startDate && (
-        <div>
-          <strong>Start Date:</strong>{" "}
-          {new Date(tripDetails.startDate).toLocaleDateString("en-IN")}
-        </div>
-      )}
-      {tripDetails.returnDate && (
-        <div>
-          <strong>Return Date:</strong>{" "}
-          {new Date(tripDetails.returnDate).toLocaleDateString("en-IN")}
-        </div>
-      )}
-      {tripDetails.endDate && (
-        <div>
-          <strong>End Date:</strong>{" "}
-          {new Date(tripDetails.endDate).toLocaleDateString("en-IN")}
-        </div>
-      )}
-      {tripDetails.dates && (
-        <div>
-          <strong>Dates:</strong> {tripDetails.dates}
-        </div>
-      )}
-      {tripDetails.purpose && (
-        <div>
-          <strong>Purpose:</strong> {tripDetails.purpose}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function formatEmergencyContacts(contacts) {
+function formatEmergencyContactsForPDF(contacts) {
   if (!contacts) return "N/A";
   if (typeof contacts === "string") {
-    try {
-      contacts = JSON.parse(contacts);
-    } catch {
-      return contacts;
-    }
+    try { contacts = JSON.parse(contacts); } catch { return contacts; }
   }
   if (Array.isArray(contacts)) {
-    return (
-      <div className="mc-emergency-contacts">
-        {contacts.map((contact, index) => (
-          <div key={index} className="mc-contact-item">
-            <div>
-              <strong>{contact.name}</strong>
-            </div>
-            <div>{contact.phone}</div>
-          </div>
-        ))}
-      </div>
-    );
+    return contacts.map(c => `${c.name || "Unknown"}: ${c.phone || "No phone"}`).join("; ");
   }
-  return contacts.name
-    ? `${contacts.name}: ${contacts.phone}`
-    : JSON.stringify(contacts);
-}
-
-// NEW: Separate function for PDF text formatting
-const formatEmergencyContactsForPDF = (contacts) => {
-  if (!contacts) return "N/A";
-
-  // Handle string contacts
-  if (typeof contacts === "string") {
-    try {
-      contacts = JSON.parse(contacts);
-    } catch {
-      return contacts;
-    }
-  }
-
-  // Handle array contacts
-  if (Array.isArray(contacts)) {
-    return contacts
-      .map(
-        (contact) =>
-          `${contact.name || "Unknown"}: ${contact.phone || "No phone"}`
-      )
-      .join("; ");
-  }
-
-  // Handle object contacts
   if (typeof contacts === "object" && contacts !== null) {
     return `${contacts.name || "Unknown"}: ${contacts.phone || "No phone"}`;
   }
-
   return "N/A";
-};
+}
 
-// NEW: Format trip details for PDF
-const formatTripDetailsForPDF = (tripDetails) => {
+function formatTripDetailsForPDF(tripDetails) {
   if (!tripDetails) return "N/A";
-
   if (typeof tripDetails === "string") {
-    try {
-      tripDetails = JSON.parse(tripDetails);
-    } catch {
-      return tripDetails;
-    }
+    try { tripDetails = JSON.parse(tripDetails); } catch { return tripDetails; }
   }
-
   const details = [];
-  if (tripDetails.destination)
-    details.push(`Destination: ${tripDetails.destination}`);
-  if (tripDetails.startDate)
-    details.push(
-      `Start: ${new Date(tripDetails.startDate).toLocaleDateString("en-IN")}`
-    );
-  if (tripDetails.returnDate)
-    details.push(
-      `Return: ${new Date(tripDetails.returnDate).toLocaleDateString("en-IN")}`
-    );
-  if (tripDetails.endDate)
-    details.push(
-      `End: ${new Date(tripDetails.endDate).toLocaleDateString("en-IN")}`
-    );
-  if (tripDetails.purpose) details.push(`Purpose: ${tripDetails.purpose}`);
-
+  if (tripDetails.destination) details.push(`Destination: ${tripDetails.destination}`);
+  if (tripDetails.startDate) details.push(`Start: ${new Date(tripDetails.startDate).toLocaleDateString("en-IN")}`);
+  if (tripDetails.returnDate) details.push(`Return: ${new Date(tripDetails.returnDate).toLocaleDateString("en-IN")}`);
   return details.length > 0 ? details.join(", ") : "N/A";
-};
+}
 
-// PDF Generation function - FIXED
-const formatFamilyMembersForPDF = (familyMembers) => {
-  if (
-    !familyMembers ||
-    !Array.isArray(familyMembers) ||
-    familyMembers.length === 0
-  ) {
+function formatFamilyMembersForPDF(familyMembers) {
+  if (!familyMembers || !Array.isArray(familyMembers) || familyMembers.length === 0) {
     return "No family members registered";
   }
-
   return familyMembers
     .map((member, index) => {
       const name = member.fullName || "Unknown";
@@ -249,37 +127,28 @@ const formatFamilyMembersForPDF = (familyMembers) => {
       return `${index + 1}. ${name} (${age}, ${gender})`;
     })
     .join("\n");
-};
+}
 
-// NEW: Generate comprehensive missing person summary
-const generateMissingPersonSummary = (tourist, alert) => {
+function generateMissingPersonSummary(tourist, alert) {
   const touristName = tourist?.fullName || "The tourist";
   const nationality = tourist?.nationality || "Indian";
   const age = tourist?.age ? `${tourist.age} years` : "unknown age";
-  const gender = tourist?.gender
-    ? tourist.gender.toLowerCase()
-    : "unknown gender";
+  const gender = tourist?.gender ? tourist.gender.toLowerCase() : "unknown gender";
 
   const lastKnownLocation =
     alert?.location?.latitude && alert?.location?.longitude
       ? `approximately ${alert.location.latitude}, ${alert.location.longitude}`
       : "unknown location";
 
-  const lastSeenTime = alert?.createdAt
-    ? formatDate(alert.createdAt)
-    : "recently";
-  const idleDuration = alert?.idleDuration
-    ? formatSecondsToHHMM(alert.idleDuration)
-    : "unknown period";
+  const lastSeenTime = alert?.createdAt ? formatDate(alert.createdAt) : "recently";
+  const idleDuration = alert?.idleDuration ? formatSecondsToHHMM(alert.idleDuration) : "unknown period";
 
   const familyCount = tourist?.familyMembers?.length || 0;
   const familyInfo =
     familyCount > 0
-      ? `The tourist was accompanied by ${familyCount} family member${familyCount > 1 ? "s" : ""
-      }.`
+      ? `The tourist was accompanied by ${familyCount} family member(s).`
       : "The tourist was traveling alone.";
 
-  const tripPurpose = tourist?.tripDetails?.purpose || "tourism purposes";
   const destination = tourist?.tripDetails?.destination || "the local area";
 
   return `
@@ -289,17 +158,7 @@ INCIDENT SUMMARY:
 The individual was last detected by the safety monitoring system at ${lastSeenTime} in the vicinity of ${lastKnownLocation}. The system registered unusual inactivity for a duration of ${idleDuration}, triggering an automatic missing person alert.
 
 BACKGROUND:
-${touristName} was visiting ${destination} for ${tripPurpose}. ${familyInfo} The digital tourist identification system (DTID: ${tourist?.dtid || "N/A"
-    }) was actively monitoring the tourist's safety throughout their visit.
-
-LAST KNOWN ACTIVITY:
-Prior to the alert, the tourist's device showed normal activity patterns. The abrupt cessation of movement and system interaction, combined with the extended idle period, indicates a potential safety concern requiring immediate investigation.
-
-IMMEDIATE ACTIONS TAKEN:
-1. Automated E-FIR generation initiated
-2. Local authorities notified via system integration
-3. Emergency contacts alerted (if registered)
-4. Real-time location data preserved for investigation
+${touristName} was visiting ${destination}. ${familyInfo} The digital tourist identification system (DTID: ${tourist?.dtid || "N/A"}) was actively monitoring the tourist's safety.
 
 RECOMMENDED NEXT STEPS:
 • Verify last known location with ground patrols
@@ -307,37 +166,24 @@ RECOMMENDED NEXT STEPS:
 • Check local hospitals and transportation hubs
 • Review CCTV footage from the last known area
 • Coordinate with local tourist police units
-
-This case has been flagged as HIGH PRIORITY due to the automated nature of the alert and potential risk to tourist safety. Immediate investigative action is recommended.
   `.trim();
-};
+}
 
-// Enhanced PDF Generation function with family members and summary
-const generateEFIRPDF = (tourist, alert) => {
+function generateEFIRPDF(tourist, alert) {
   try {
     const doc = new jsPDF();
 
-    // Page 1: E-FIR Official Document
-    // E-FIR Header
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 128);
-    doc.text("ELECTRONIC FIRST INFORMATION REPORT (E-FIR)", 105, 20, {
-      align: "center",
-    });
+    doc.text("ELECTRONIC FIRST INFORMATION REPORT (E-FIR)", 105, 20, { align: "center" });
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    doc.text(
-      `FIR No: MIS/${alert?.id?.slice(-8) || "N/A"
-      }/${new Date().getFullYear()}`,
-      20,
-      35
-    );
+    doc.text(`FIR No: MIS/${alert?.id?.slice(-8) || "N/A"}/${new Date().getFullYear()}`, 20, 35);
     doc.text(`Police Station: Cyber Crime/Tourist Missing Cell`, 20, 42);
     doc.text(`Date & Time: ${new Date().toLocaleString("en-IN")}`, 20, 49);
 
-    // Section 1: Complainant/Tourist Details
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("SECTION 1: MISSING TOURIST DETAILS", 20, 65);
@@ -352,21 +198,11 @@ const generateEFIRPDF = (tourist, alert) => {
       ["Nationality:", tourist?.nationality || "Indian"],
       ["Age:", tourist?.age || "N/A"],
       ["Gender:", tourist?.gender || "N/A"],
-      [
-        "Passport/ID No:",
-        tourist?.passportNumber || tourist?.idNumber || "N/A",
-      ],
-      ["Contact Number:", tourist?.phone || tourist?.contactNumber || "N/A"],
+      ["Contact Number:", tourist?.phone || tourist?.mobileNumber || "N/A"],
       ["Email:", tourist?.email || "N/A"],
-      [
-        "Emergency Contacts:",
-        formatEmergencyContactsForPDF(tourist?.emergencyContacts),
-      ],
+      ["Emergency Contacts:", formatEmergencyContactsForPDF(tourist?.emergencyContacts)],
       ["Tourist ID Issue Date:", formatUnixSecondsToLocale(tourist?.issuedAt)],
-      [
-        "Expected Return Date:",
-        formatUnixSecondsToLocale(tourist?.returnDate || tourist?.validTill),
-      ],
+      ["Expected Return Date:", formatUnixSecondsToLocale(tourist?.returnDate || tourist?.validTill)],
     ];
 
     touristDetails.forEach(([label, value]) => {
@@ -376,7 +212,6 @@ const generateEFIRPDF = (tourist, alert) => {
       yPosition += lines.length * 6 + 2;
     });
 
-    // Family Members Section
     yPosition += 5;
     doc.setFont("helvetica", "bold");
     doc.text("Family Members / Travel Companions:", 20, yPosition);
@@ -390,7 +225,6 @@ const generateEFIRPDF = (tourist, alert) => {
       yPosition += 6;
     });
 
-    // Section 2: Missing Incident Details
     yPosition += 10;
     doc.setFont("helvetica", "bold");
     doc.text("SECTION 2: MISSING INCIDENT DETAILS", 20, yPosition);
@@ -399,11 +233,7 @@ const generateEFIRPDF = (tourist, alert) => {
     doc.setFont("helvetica", "normal");
     const incidentDetails = [
       ["Alert Generated:", formatDate(alert?.createdAt)],
-      [
-        "Last Known Location:",
-        `${alert?.location?.latitude || "-"}, ${alert?.location?.longitude || "-"
-        }`,
-      ],
+      ["Last Known Location:", `${alert?.location?.latitude || "-"}, ${alert?.location?.longitude || "-"}`],
       ["Idle Duration:", formatSecondsToHHMM(alert?.idleDuration)],
       ["Device UID:", alert?.userId || alert?.uid || "N/A"],
       ["Trip Details:", formatTripDetailsForPDF(tourist?.tripDetails)],
@@ -416,18 +246,15 @@ const generateEFIRPDF = (tourist, alert) => {
       yPosition += lines.length * 6 + 2;
     });
 
-    // Add page borders for official look
     doc.setDrawColor(0, 0, 128);
     doc.setLineWidth(0.5);
     doc.rect(10, 10, 190, 277);
 
-    // Page 2: Comprehensive Summary
     doc.addPage();
-
     doc.setDrawColor(0, 0, 128);
     doc.setLineWidth(0.5);
     doc.rect(10, 10, 190, 277);
-    // Summary Header
+
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 128);
@@ -435,23 +262,16 @@ const generateEFIRPDF = (tourist, alert) => {
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    doc.text(
-      `Case Reference: MIS/${alert?.id?.slice(-8) || "N/A"
-      }/${new Date().getFullYear()}`,
-      20,
-      35
-    );
+    doc.text(`Case Reference: MIS/${alert?.id?.slice(-8) || "N/A"}/${new Date().getFullYear()}`, 20, 35);
     doc.text(`Missing Person: ${tourist?.fullName || "N/A"}`, 20, 42);
     doc.text(`DTID: ${tourist?.dtid || "N/A"}`, 20, 49);
 
-    // Generate and add the comprehensive summary
     const summaryText = generateMissingPersonSummary(tourist, alert);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
 
     const summaryLines = doc.splitTextToSize(summaryText, 170);
     let summaryYPosition = 65;
-
 
     summaryLines.forEach((line) => {
       if (summaryYPosition > 250) {
@@ -462,223 +282,147 @@ const generateEFIRPDF = (tourist, alert) => {
       summaryYPosition += 6;
     });
 
-    // Section 3: Additional Information
-    summaryYPosition += 15;
-    doc.setFont("helvetica", "bold");
-    doc.text("INVESTIGATIVE NOTES & OBSERVATIONS:", 20, summaryYPosition);
-
-    summaryYPosition += 10;
-    doc.setFont("helvetica", "normal");
-    const investigativeNotes = [
-      "• Automated alert triggered by safety monitoring system",
-      "• Last known location coordinates preserved for investigation",
-      "• Emergency contacts have been automatically notified",
-      "• Local tourist police units alerted via system integration",
-      "• Case classified as HIGH PRIORITY - Tourist safety concern",
-      "• Recommended immediate ground verification of last known location",
-      "• Check local hospitals, transport hubs, and accommodation",
-      "• Review CCTV footage from last known area",
-      "• Coordinate with family members for additional information",
-      "• Update case status every 2 hours until resolved",
-    ];
-
-    investigativeNotes.forEach((note) => {
-      if (summaryYPosition > 250) {
-        doc.addPage();
-        summaryYPosition = 20;
-      }
-      const noteLines = doc.splitTextToSize(note, 160);
-      noteLines.forEach((line) => {
-        doc.text(line, 25, summaryYPosition);
-        summaryYPosition += 6;
-      });
-      summaryYPosition += 2;
-    });
-
-    // Footer for summary page
-    if (summaryYPosition > 220) {
-      doc.addPage();
-      summaryYPosition = 20;
-    }
-
-    doc.setFontSize(8);
-    doc.text(
-      "Note: This summary is auto-generated based on digital tourist safety monitoring system data.",
-      20,
-      summaryYPosition + 10
-    );
-    doc.text(
-      "All timestamps and locations are system-recorded and require field verification.",
-      20,
-      summaryYPosition + 16
-    );
-
-    // Add border to summary page
-    doc.setDrawColor(0, 0, 128);
-    doc.setLineWidth(0.5);
-    doc.rect(10, 10, 190, 277);
-
-    // Save the PDF
-    const fileName = `E-FIR_Missing_${tourist?.dtid || "Tourist"}_${new Date().toISOString().split("T")[0]
-      }.pdf`;
+    const fileName = `E-FIR_Missing_${tourist?.dtid || "Tourist"}_${new Date().toISOString().split("T")[0]}.pdf`;
     doc.save(fileName);
   } catch (error) {
     console.error("Error generating PDF:", error);
     alert("Error generating E-FIR PDF. Please try again.");
   }
-};
+}
 
 function TouristCard({ tourist, index, alert }) {
+  const [copied, setCopied] = useState(false);
+
+  const displayTourist = tourist || {
+    dtid: alert?.dtid || "N/A",
+    fullName: alert?.userId ? "Registered Tourist" : "Unknown Tourist",
+    phone: "N/A",
+    isActive: false,
+  };
+
   const isActive = useMemo(() => {
-    if (!tourist) return false;
-    if (Object.prototype.hasOwnProperty.call(tourist, "isActive"))
-      return tourist.isActive;
-    const returnDate = tourist.returnDate || tourist.validTill;
+    if (Object.prototype.hasOwnProperty.call(displayTourist, "isActive")) {
+      return displayTourist.isActive;
+    }
+    const returnDate = displayTourist.returnDate || displayTourist.validTill;
     if (!returnDate) return false;
     const currentTime = Math.floor(Date.now() / 1000);
     return returnDate > currentTime;
-  }, [tourist]);
+  }, [displayTourist]);
 
   const handleDownloadEFIR = () => {
-    if (!tourist) {
-      alert("Tourist data not available yet. Please wait...");
-      return;
-    }
-    generateEFIRPDF(tourist, alert);
+    generateEFIRPDF(displayTourist, alert);
   };
 
-  if (!tourist) return null;
+  const handleCopyDtid = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(displayTourist.dtid);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  const initials = (tourist.fullName || "?")
+  const initials = (displayTourist.fullName || "?")
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
 
+  const lat = alert?.location?.latitude;
+  const lng = alert?.location?.longitude;
+  const mapsUrl = lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+
   return (
-    <div className="mc-card-new">
-      {/* Gradient Header */}
-      <div className="mc-card-new-header">
-        <div className="mc-card-new-header-left">
-          <div className="mc-avatar">{initials}</div>
-          <div className="mc-avatar-info">
-            <div className="mc-avatar-name">{tourist.fullName || "Unknown"}</div>
-            <div className="mc-avatar-dtid">{tourist.dtid}</div>
-          </div>
-        </div>
-        <div className="mc-card-new-header-right">
-          <span className={`mc-status-pill ${isActive ? "active" : "missing"}`}>
-            {isActive ? "✓ Active" : "⚠ Missing"}
-          </span>
-          <span className="mc-card-index">#{typeof index === "number" ? index + 1 : ""}</span>
+    <div className={`mc-efir-card fade-in ${isActive ? "card-status-active" : "card-status-missing"}`}>
+      {/* Header Bar: Row 1 Name + Avatar + Case Tag */}
+      <div className="mc-card-top-header">
+        <div className="mc-avatar-circle">{initials}</div>
+        <div className="mc-name-box">
+          <h3 className="mc-name-text">{displayTourist.fullName || "Registered Tourist"}</h3>
+          <span className="mc-case-tag">Case #{index + 1}</span>
         </div>
       </div>
 
-      {/* Alert Block */}
+      {/* Header Bar: Row 2 Dedicated Clear DTID Strip */}
+      <div className="mc-dtid-dedicated-strip" onClick={handleCopyDtid} title="Click to copy DTID">
+        <span className="dtid-badge">DTID</span>
+        <code className="dtid-code-text">{displayTourist.dtid}</code>
+        <button className="btn-copy-dtid-action" aria-label="Copy DTID">
+          {copied ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+        </button>
+      </div>
+
+      {/* Incident details box */}
       {alert && (
-        <div className="mc-alert-strip">
-          <div className="mc-alert-strip-title">🚨 Alert Triggered</div>
-          <div className="mc-alert-strip-grid">
-            <div className="mc-alert-chip">
-              <span className="mc-chip-label">Time</span>
-              <span className="mc-chip-value">{formatDate(alert.createdAt)}</span>
-            </div>
-            {Number.isFinite(Number(alert.idleDuration)) && (
-              <div className="mc-alert-chip">
-                <span className="mc-chip-label">Idle</span>
-                <span className="mc-chip-value">{formatSecondsToHHMM(alert.idleDuration)}</span>
-              </div>
-            )}
-            <div className="mc-alert-chip">
-              <span className="mc-chip-label">📍 Location</span>
-              <span className="mc-chip-value">
-                {alert?.location?.latitude ?? "—"}, {alert?.location?.longitude ?? "—"}
-              </span>
-            </div>
-            {(() => {
-              const uid = alert.userId || alert.uid || "";
-              const hideUid = uid === "ZsWMn71fYrY2Z8qSCb4qxN7O4XC2";
-              return !hideUid && uid ? (
-                <div className="mc-alert-chip">
-                  <span className="mc-chip-label">UID</span>
-                  <span className="mc-chip-value mc-chip-mono">{uid}</span>
-                </div>
-              ) : null;
-            })()}
+        <div className="mc-incident-strip">
+          <div className="inc-header-row">
+            <span className="inc-alert-badge">
+              <AlertTriangle size={13} /> SAFETY SENSOR ALERT
+            </span>
+            <span className="inc-timestamp">{formatDate(alert.createdAt)}</span>
           </div>
+
+          <div className="inc-grid-2">
+            <div>
+              <span className="inc-lbl">INACTIVITY PERIOD</span>
+              <strong className="inc-val">
+                {Number.isFinite(Number(alert.idleDuration)) ? formatSecondsToHHMM(alert.idleDuration) : "-"}
+              </strong>
+            </div>
+
+            <div>
+              <span className="inc-lbl">GPS COORDINATES</span>
+              <strong className="inc-val mono">{lat ?? "—"}, {lng ?? "—"}</strong>
+            </div>
+          </div>
+
+          {mapsUrl && (
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="btn-open-maps-link">
+              <MapPin size={13} /> View on Google Maps <ExternalLink size={11} />
+            </a>
+          )}
         </div>
       )}
 
-      {/* Info Body */}
-      <div className="mc-card-new-body">
-        {/* Tourist Details Row */}
-        <div className="mc-info-grid">
-          <div className="mc-info-cell">
-            <span className="mc-cell-label">📞 Contact</span>
-            <span className="mc-cell-value">{tourist.phone || tourist.contactNumber || "N/A"}</span>
-          </div>
-          {tourist.nationality && (
-            <div className="mc-info-cell">
-              <span className="mc-cell-label">🌐 Nationality</span>
-              <span className="mc-cell-value">{tourist.nationality}</span>
-            </div>
-          )}
-          <div className="mc-info-cell">
-            <span className="mc-cell-label">📅 Issued</span>
-            <span className="mc-cell-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</span>
-          </div>
-          <div className="mc-info-cell">
-            <span className="mc-cell-label">⏰ Return</span>
-            <span className="mc-cell-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</span>
-          </div>
+      {/* Body details */}
+      <div className="mc-card-body-details">
+        <div className="mc-row">
+          <span className="lbl"><Phone size={13} /> Contact</span>
+          <span className="val">{displayTourist.phone || displayTourist.mobileNumber || "N/A"}</span>
         </div>
 
-        {/* Trip Details */}
-        {tourist.tripDetails && (
-          <div className="mc-section-block">
-            <div className="mc-section-label">✈️ Trip Details</div>
-            <div className="mc-section-content">{formatTripDetails(tourist.tripDetails)}</div>
-          </div>
-        )}
+        <div className="mc-row">
+          <span className="lbl"><Calendar size={13} /> Issued</span>
+          <span className="val">{formatUnixSecondsToLocale(displayTourist.issuedAt)}</span>
+        </div>
 
-        {/* Family Members */}
-        {tourist.familyMembers && tourist.familyMembers.length > 0 && (
-          <div className="mc-section-block">
-            <div className="mc-section-label">👨‍👩‍👧 Family Members ({tourist.familyMembers.length})</div>
-            <div className="mc-family-tags">
-              {tourist.familyMembers.map((member, i) => (
-                <span key={i} className="mc-family-tag">
-                  {member.fullName} · {member.age}y · {member.gender}
-                </span>
+        <div className="mc-row">
+          <span className="lbl"><Clock size={13} /> Check-out</span>
+          <span className="val">{formatUnixSecondsToLocale(displayTourist.returnDate || displayTourist.validTill)}</span>
+        </div>
+
+        {/* Companions */}
+        {displayTourist.familyMembers && displayTourist.familyMembers.length > 0 && (
+          <div className="mc-companions-block">
+            <span className="comp-lbl">Travel Companions ({displayTourist.familyMembers.length})</span>
+            <div className="comp-tags">
+              {displayTourist.familyMembers.map((m, i) => (
+                <span key={i} className="comp-tag">{m.fullName || m.name}</span>
               ))}
             </div>
           </div>
         )}
-
-        {/* Emergency Contacts */}
-        {tourist.emergencyContacts && (
-          <div className="mc-section-block">
-            <div className="mc-section-label">🆘 Emergency Contacts</div>
-            <div className="mc-section-content">{formatEmergencyContacts(tourist.emergencyContacts)}</div>
-          </div>
-        )}
       </div>
 
-      {/* Footer */}
-      <div className="mc-card-new-footer">
-        <div className="mc-validity-text">
-          {isActive
-            ? `Valid until ${formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}`
-            : "Tourist reported missing"}
-        </div>
-        <button
-          className="mc-efir-btn"
-          onClick={handleDownloadEFIR}
-          disabled={!tourist}
-          title="Download E-FIR PDF"
-        >
-          📄 Download E-FIR
+      {/* Card Action Footer */}
+      <div className="mc-card-footer">
+        <span className={`mc-status-pill ${isActive ? "pill-active" : "pill-missing"}`}>
+          <span className="status-dot"></span>
+          {isActive ? "Tracking Active" : "Reported Missing"}
+        </span>
+
+        <button className="btn-download-efir" onClick={handleDownloadEFIR}>
+          <FileText size={14} /> Download E-FIR PDF
         </button>
       </div>
     </div>
@@ -688,54 +432,20 @@ function TouristCard({ tourist, index, alert }) {
 const MemoTouristCard = memo(TouristCard);
 
 export default function MissingComplaints() {
+  const { touristsMap: globalTouristsMap, safetyAlerts: globalSafetyAlerts } = useData();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [touristByDtid, setTouristByDtid] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [query, setQuery] = useState("");
+  const [filterMode, setFilterMode] = useState("all");
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchItems() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/safety-alerts`
-        );
-        if (!cancelled) {
-          const list = Array.isArray(data) ? data : [];
-          const sorted = list.slice().sort((a, b) => {
-            const da = new Date(a.createdAt).getTime() || 0;
-            const db = new Date(b.createdAt).getTime() || 0;
-            return db - da;
-          });
-          setItems(sorted);
-          setLastUpdated(Date.now());
-        }
-      } catch (e) {
-        if (!cancelled) setError(e.message || "Failed to load safety alerts");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchItems();
-    const id = setInterval(fetchItems, 300000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  // Fetch tourist details for any DTIDs we don't yet have
-  const refresh = useCallback(async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/safety-alerts`
-      );
+      const { data } = await axios.get(`${API_BASE_URL}/api/safety-alerts`);
       const list = Array.isArray(data) ? data : [];
       const sorted = list.slice().sort((a, b) => {
         const da = new Date(a.createdAt).getTime() || 0;
@@ -745,120 +455,223 @@ export default function MissingComplaints() {
       setItems(sorted);
       setLastUpdated(Date.now());
     } catch (e) {
-      setError(e.message || "Failed to load safety alerts");
+      console.error("Safety alerts fetch error:", e);
+      if (globalSafetyAlerts && globalSafetyAlerts.length > 0) {
+        setItems(globalSafetyAlerts);
+      } else {
+        setError(e.message || "Failed to load safety alerts");
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [globalSafetyAlerts]);
 
   useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 300000);
+    return () => clearInterval(id);
+  }, [fetchItems]);
+
+  useEffect(() => {
+    if (items.length === 0) return;
     const dtids = items.map((a) => a.dtid).filter(Boolean);
-    const missing = dtids.filter((d) => !touristByDtid[d]);
-    if (missing.length === 0) return;
+
+    let needsUpdate = false;
+    const missingDtids = [];
+
+    dtids.forEach((dtid) => {
+      if (globalTouristsMap[dtid] && !touristByDtid[dtid]) {
+        needsUpdate = true;
+      } else if (!touristByDtid[dtid] && !globalTouristsMap[dtid]) {
+        missingDtids.push(dtid);
+      }
+    });
+
+    if (needsUpdate) {
+      setTouristByDtid((prev) => ({ ...globalTouristsMap, ...prev }));
+    }
+
+    if (missingDtids.length === 0) return;
+
     let cancelled = false;
-
-    const concurrency = 4;
-    let i = 0;
-
-    async function worker() {
-      while (i < missing.length && !cancelled) {
-        const dtid = missing[i++];
+    async function loadMissing() {
+      for (const dtid of missingDtids) {
+        if (cancelled) break;
         try {
-          const { data } = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/tourists/${dtid}`
-          );
-          if (!cancelled) {
-            setTouristByDtid((prev) =>
-              prev[dtid] ? prev : { ...prev, [dtid]: data }
-            );
+          const { data } = await axios.get(`${API_BASE_URL}/api/tourists/${dtid}`);
+          if (!cancelled && data) {
+            setTouristByDtid((prev) => ({ ...prev, [dtid]: data }));
           }
-        } catch { }
+        } catch {}
       }
     }
 
-    const workers = Array.from(
-      { length: Math.min(concurrency, missing.length) },
-      () => worker()
-    );
-    Promise.all(workers);
+    loadMissing();
     return () => {
       cancelled = true;
     };
-  }, [items, touristByDtid]);
+  }, [items, globalTouristsMap]);
+
+  const stats = useMemo(() => {
+    let missing = 0;
+    items.forEach(a => {
+      const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+      if (tourist && tourist.isActive === false) missing++;
+    });
+    return { total: items.length, missing, active: items.length - missing };
+  }, [items, touristByDtid, globalTouristsMap]);
+
+  const filteredItems = useMemo(() => {
+    let list = items;
+
+    if (filterMode === "missing") {
+      list = list.filter(a => {
+        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+        return tourist && tourist.isActive === false;
+      });
+    } else if (filterMode === "active") {
+      list = list.filter(a => {
+        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+        return !tourist || tourist.isActive !== false;
+      });
+    }
+
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((item) => {
+        const tourist = touristByDtid[item.dtid] || globalTouristsMap[item.dtid];
+        const name = String(tourist?.fullName || "").toLowerCase();
+        const dtid = String(item.dtid || "").toLowerCase();
+        return dtid.includes(q) || name.includes(q);
+      });
+    }
+
+    return list;
+  }, [items, filterMode, query, touristByDtid, globalTouristsMap]);
 
   return (
-    <div className="mc-dashboard-container">
-      <div className="mc-dashboard-header">
-        <div className="mc-header-content">
-          <h2 className="mc-section-title">
-            <span className="mc-section-icon">🆘</span>
-            Auto E-FIR Generation
-          </h2>
-          <p className="mc-section-subtitle">
-            Missing tourists - Automated E-FIR PDF generation
-          </p>
-        </div>
-        <div className="mc-header-actions">
-          <button className="mc-btn" onClick={refresh} disabled={loading}>
-            Refresh
-          </button>
-          {lastUpdated && (
-            <div className="mc-last-updated">
-              Updated{" "}
-              {new Intl.DateTimeFormat("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              }).format(lastUpdated)}
+    <div className="mc-dashboard-wrapper fade-in">
+      {/* Hero Header */}
+      <div className="mc-hero-header">
+        <div className="mc-hero-container">
+          <div className="mc-title-group">
+            <span className="mc-police-pill">
+              <ShieldAlert size={14} /> Cyber Crime & Tourist Missing Cell
+            </span>
+            <h1 className="mc-hero-title">Automated E-FIR & Missing Complaints</h1>
+            <p className="mc-hero-subtitle">
+              Sensor-triggered safety monitoring alerts and official Electronic First Information Report (E-FIR) generation.
+            </p>
+          </div>
+
+          <div className="mc-stats-strip">
+            <div className="mc-stat-card cases-card" onClick={() => setFilterMode("missing")}>
+              <span className="num">{stats.missing}</span>
+              <span className="lbl">Missing E-FIR Cases</span>
             </div>
-          )}
+            <div className="mc-stat-card total-card" onClick={() => setFilterMode("all")}>
+              <span className="num">{stats.total}</span>
+              <span className="lbl">Total Safety Alerts</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {loading && (
-        <div className="skeleton-grid">
-          {Array.from({
-            length: Math.max(3, Math.min(8, items.length || 6)),
-          }).map((_, i) => (
-            <div key={i} className="skeleton-card">
-              <div className="skeleton header" />
-              <div className="skeleton line" />
-              <div className="skeleton line" />
-              <div className="skeleton line short" />
-              <div className="skeleton footer" />
-            </div>
-          ))}
-        </div>
-      )}
-      {error && (
-        <div className="mc-error-message">
-          <div className="mc-error-icon">⚠️</div>
-          <p>{error}</p>
-        </div>
-      )}
+      {/* Main Content Body */}
+      <div className="mc-main-body">
+        {/* Controls Bar */}
+        <div className="mc-controls-bar">
+          <div className="mc-search-box">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search by DTID or Tourist Name..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="mc-input-field"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} className="btn-clear-q">
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-      {items.length === 0 && !loading ? (
-        <div className="mc-empty-state">
-          <div className="mc-empty-icon">📄</div>
-          <h3>No E-FIR Cases</h3>
-          <p>No missing tourist cases requiring E-FIR generation.</p>
-        </div>
-      ) : (
-        <div className="mc-tourists-grid">
-          {items.map((a, index) => (
-            <div
-              key={a.id ?? `${a.dtid}-${index}`}
-              className="mc-tourist-card-wrapper"
+          <div className="mc-filter-pills">
+            <button
+              className={`filter-pill ${filterMode === "all" ? "active" : ""}`}
+              onClick={() => setFilterMode("all")}
             >
+              All Alerts ({stats.total})
+            </button>
+            <button
+              className={`filter-pill ${filterMode === "missing" ? "active" : ""}`}
+              onClick={() => setFilterMode("missing")}
+            >
+              <span className="amber-dot"></span> Missing Cases ({stats.missing})
+            </button>
+            <button
+              className={`filter-pill ${filterMode === "active" ? "active" : ""}`}
+              onClick={() => setFilterMode("active")}
+            >
+              <span className="green-dot"></span> Active Tracking ({stats.active})
+            </button>
+          </div>
+
+          <div className="mc-actions-right">
+            <button className="btn-refresh-accent" onClick={fetchItems} disabled={loading}>
+              <RefreshCw size={15} />
+              <span>Refresh Alerts</span>
+            </button>
+            {lastUpdated && (
+              <span className="mc-updated-text">
+                Updated {new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(lastUpdated)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Loading */}
+        {loading && items.length === 0 && (
+          <div className="mc-skeleton-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="mc-skel-card">
+                <div className="mc-skel-head" />
+                <div className="mc-skel-line" />
+                <div className="mc-skel-line short" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && items.length === 0 && (
+          <div className="mc-error-card">
+            <AlertTriangle size={24} />
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {filteredItems.length === 0 && !loading ? (
+          <div className="mc-empty-card">
+            <FileText size={56} className="empty-svg" />
+            <h3>No E-FIR Complaints Found</h3>
+            <p>No missing tourist safety records match your current search query.</p>
+          </div>
+        ) : (
+          <div className="mc-cards-grid">
+            {filteredItems.map((a, index) => (
               <MemoTouristCard
-                tourist={touristByDtid[a.dtid]}
+                key={a.id ?? `${a.dtid}-${index}`}
+                tourist={touristByDtid[a.dtid] || globalTouristsMap[a.dtid]}
                 index={index}
                 alert={a}
               />
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

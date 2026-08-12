@@ -1,39 +1,33 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import axios from 'axios';
 import {
-  Timer, MapPin, CalendarDays, Clock4, User, RefreshCw,
-  ShieldAlert, CheckCircle2, XCircle, AlertTriangle, PhoneCall, Plane
+  Timer, CalendarDays, Clock4, User, RefreshCw,
+  ShieldAlert, AlertOctagon, MapPin, Phone, Search, Copy, Check, ExternalLink, X
 } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
 import './PanicAlerts.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function formatDate(value) {
   if (!value) return '-';
   try {
-    // Handle Firestore Timestamp-like objects
     if (typeof value === 'object' && value) {
       if (typeof value.toDate === 'function') {
-        const d = value.toDate();
-        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
+        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(value.toDate());
       }
       if (typeof value.seconds === 'number') {
-        const d = new Date(value.seconds * 1000);
-        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
+        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value.seconds * 1000));
       }
       if (typeof value._seconds === 'number') {
-        const d = new Date(value._seconds * 1000);
-        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
+        return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value._seconds * 1000));
       }
     }
-
-    // Numeric (seconds or milliseconds)
     if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim()))) {
       const num = Number(value);
-      const ms = num > 1e12 ? num : num * 1000; // seconds vs ms
-      const d = new Date(ms);
-      return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
+      const ms = num > 1e12 ? num : num * 1000;
+      return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(ms));
     }
-
-    // String that may be prefixed with 'createdAt'
     if (typeof value === 'string') {
       const cleaned = value.replace(/^\s*createdAt\s*/i, '').trim();
       const d = new Date(cleaned);
@@ -41,8 +35,6 @@ function formatDate(value) {
         return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
       }
     }
-
-    // Fallback attempt
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
       return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }).format(d);
@@ -61,101 +53,108 @@ function formatUnixSecondsToLocale(seconds) {
   });
 }
 
-function formatTripDetails(tripDetails) {
-  if (!tripDetails) return 'N/A';
-  if (typeof tripDetails === 'string') {
-    try { tripDetails = JSON.parse(tripDetails); } catch { return tripDetails; }
-  }
-  return (
-    <div className="pa-trip-details">
-      {tripDetails.destination && <div><strong>Destination:</strong> {tripDetails.destination}</div>}
-      {tripDetails.startDate && <div><strong>Start Date:</strong> {new Date(tripDetails.startDate).toLocaleDateString('en-IN')}</div>}
-      {tripDetails.returnDate && <div><strong>Return Date:</strong> {new Date(tripDetails.returnDate).toLocaleDateString('en-IN')}</div>}
-      {tripDetails.endDate && <div><strong>End Date:</strong> {new Date(tripDetails.endDate).toLocaleDateString('en-IN')}</div>}
-      {tripDetails.dates && <div><strong>Dates:</strong> {tripDetails.dates}</div>}
-      {tripDetails.purpose && <div><strong>Purpose:</strong> {tripDetails.purpose}</div>}
-    </div>
-  );
-}
-
-function formatEmergencyContacts(contacts) {
-  if (!contacts) return 'N/A';
-  if (typeof contacts === 'string') {
-    try { contacts = JSON.parse(contacts); } catch { return contacts; }
-  }
-  if (Array.isArray(contacts)) {
-    return (
-      <div className="pa-emergency-contacts">
-        {contacts.map((contact, index) => (
-          <div key={index} className="pa-contact-item">
-            <div><strong>{contact.name}</strong></div>
-            <div>{contact.phone}</div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return contacts.name ? `${contacts.name}: ${contacts.phone}` : JSON.stringify(contacts);
-}
-
 function TouristCard({ tourist, index, alert }) {
+  const [copied, setCopied] = useState(false);
+
+  const displayTourist = tourist || {
+    dtid: alert?.dtid || 'N/A',
+    fullName: alert?.email ? alert.email.split('@')[0] : 'Registered Tourist',
+    email: alert?.email || 'N/A',
+    mobileNumber: 'N/A',
+    isActive: true
+  };
+
   const isActive = useMemo(() => {
-    if (!tourist) return false;
-    if (Object.prototype.hasOwnProperty.call(tourist, 'isActive')) return tourist.isActive;
-    const returnDate = tourist.returnDate || tourist.validTill;
-    if (!returnDate) return false;
+    if (Object.prototype.hasOwnProperty.call(displayTourist, 'isActive')) return displayTourist.isActive;
+    const returnDate = displayTourist.returnDate || displayTourist.validTill;
+    if (!returnDate) return true;
     const currentTime = Math.floor(Date.now() / 1000);
     return returnDate > currentTime;
-  }, [tourist]);
+  }, [displayTourist]);
 
-  if (!tourist) return null;
+  const lat = alert?.latitude ?? alert?.location?.latitude;
+  const lng = alert?.longitude ?? alert?.location?.longitude;
+  const mapsUrl = lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+
+  const handleCopyDtid = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(displayTourist.dtid);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="pa-tourist-card compact">
-      <div className="pa-card-header">
-        <div className="pa-card-number">{typeof index === 'number' ? `#${index + 1}` : ''}</div>
-        <div className="pa-card-id">
-          <span className="pa-id-label">DTID</span>
-          <span className="pa-id-value">{tourist.dtid}</span>
+    <div className={`pa-emergency-card fade-in ${isActive ? 'is-active-sos' : 'is-resolved-sos'}`}>
+      {/* Header Row 1: SOS Badge + Tourist Name */}
+      <div className="pa-card-head">
+        <div className="pa-head-left">
+          <span className="pa-sos-badge">
+            <AlertOctagon size={14} className="sos-pulse-icon" /> SOS Emergency #{index + 1}
+          </span>
+          <h3 className="pa-tourist-name">{displayTourist.fullName || 'Registered Tourist'}</h3>
         </div>
       </div>
-      <div className="pa-card-body">
-        <div className="pa-info-section">
-          {alert && (
-            <div className="pa-info-item full-width alert-block">
-              <div className="pa-info-label"><Timer size={14} className="pa-info-icon" />Alert Details</div>
-              <div className="pa-info-value">
-                <div><strong>Time:</strong> {formatDate(alert.createdAt)}</div>
-                <div><strong>Location:</strong> {alert.latitude ?? alert?.location?.latitude ?? '-'}, {alert.longitude ?? alert?.location?.longitude ?? '-'}</div>
-              </div>
-            </div>
+
+      {/* Header Row 2: Dedicated DTID Strip */}
+      <div className="pa-dtid-dedicated-strip" onClick={handleCopyDtid} title="Click to copy DTID">
+        <span className="dtid-badge">DTID</span>
+        <code className="dtid-code-text">{displayTourist.dtid}</code>
+        <button className="btn-copy-dtid-action" aria-label="Copy DTID">
+          {copied ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+        </button>
+      </div>
+
+      {/* Incident Box */}
+      <div className="pa-incident-box">
+        <div className="incident-title-row">
+          <span className="inc-lbl"><Timer size={14} /> Panic Incident Signal</span>
+          <span className="inc-time">{formatDate(alert?.createdAt)}</span>
+        </div>
+
+        <div className="incident-grid-details">
+          <div className="inc-detail-item">
+            <span className="inc-sub-label">GPS Coordinates</span>
+            <span className="inc-sub-val mono">
+              {lat ?? '—'}, {lng ?? '—'}
+            </span>
+          </div>
+
+          {mapsUrl && (
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="btn-open-map">
+              <MapPin size={13} /> Open Map <ExternalLink size={11} />
+            </a>
           )}
-          <div className="pa-info-item full-width">
-            <div className="pa-info-label"><User size={14} className="pa-info-icon" />Tourist</div>
-            <div className="pa-info-value">
-              <div><strong>Name:</strong> {tourist.fullName || 'N/A'}</div>
-            </div>
-          </div>
-          <div className="pa-info-row">
-            <div className="pa-info-item">
-              <div className="pa-info-label"><CalendarDays size={14} className="pa-info-icon" />Issued</div>
-              <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.issuedAt)}</div>
-            </div>
-            <div className="pa-info-item">
-              <div className="pa-info-label"><Clock4 size={14} className="pa-info-icon" />Return</div>
-              <div className="pa-info-value">{formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}</div>
-            </div>
-          </div>
         </div>
       </div>
-      <div className="card-footer">
-        <div className={`status-badge ${isActive ? 'verified' : 'expired'}`}>
-          {isActive ? <CheckCircle2 size={14} className="status-icon" /> : <XCircle size={14} className="status-icon" />}
-          {isActive ? 'Active' : 'Inactive'}
+
+      {/* Info Rows */}
+      <div className="pa-card-info-rows">
+        <div className="pa-row-item">
+          <span className="lbl"><User size={13} /> Mobile</span>
+          <span className="val">{displayTourist.mobileNumber || 'N/A'}</span>
         </div>
-        <div className="validity-info">
-          {isActive ? `Valid until ${formatUnixSecondsToLocale(tourist.returnDate || tourist.validTill)}` : 'Tourist ID is inactive'}
+        <div className="pa-row-item">
+          <span className="lbl"><CalendarDays size={13} /> Check-in</span>
+          <span className="val">{displayTourist.tripDetails?.startDate || formatUnixSecondsToLocale(displayTourist.issuedAt)}</span>
         </div>
+        <div className="pa-row-item">
+          <span className="lbl"><Clock4 size={13} /> Check-out</span>
+          <span className="val">{formatUnixSecondsToLocale(displayTourist.returnDate || displayTourist.validTill)}</span>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="pa-card-action-footer">
+        <span className={`pa-status-indicator ${isActive ? 'active-sos' : 'resolved-sos'}`}>
+          <span className="status-dot"></span>
+          {isActive ? 'Active Emergency Track' : 'Signal Cleared'}
+        </span>
+
+        {displayTourist.mobileNumber && displayTourist.mobileNumber !== 'N/A' && (
+          <a href={`tel:${displayTourist.mobileNumber}`} className="btn-call-emergency">
+            <Phone size={13} /> Call Mobile
+          </a>
+        )}
       </div>
     </div>
   );
@@ -164,49 +163,20 @@ function TouristCard({ tourist, index, alert }) {
 const MemoTouristCard = memo(TouristCard);
 
 export default function PanicAlerts() {
+  const { touristsMap: globalTouristsMap, panicAlerts: globalPanicAlerts } = useData();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [touristByDtid, setTouristByDtid] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [query, setQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('all');
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchAlerts() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/panic-alerts`);
-        if (!cancelled) {
-          const list = Array.isArray(data) ? data : [];
-          const sorted = list.slice().sort((a, b) => {
-            const da = new Date(a.createdAt).getTime() || 0;
-            const db = new Date(b.createdAt).getTime() || 0;
-            return db - da;
-          });
-          setAlerts(sorted);
-          setLastUpdated(Date.now());
-        }
-      } catch (e) {
-        if (!cancelled) setError(e.message || 'Failed to load panic alerts');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchAlerts();
-    const id = setInterval(fetchAlerts, 300000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  // Fetch tourist details for any DTIDs we don't yet have
-  const refresh = useCallback(async () => {
+  const fetchAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/panic-alerts`);
+      const { data } = await axios.get(`${API_BASE_URL}/api/panic-alerts`);
       const list = Array.isArray(data) ? data : [];
       const sorted = list.slice().sort((a, b) => {
         const da = new Date(a.createdAt).getTime() || 0;
@@ -216,93 +186,222 @@ export default function PanicAlerts() {
       setAlerts(sorted);
       setLastUpdated(Date.now());
     } catch (e) {
-      setError(e.message || 'Failed to load panic alerts');
+      console.error('Panic alerts fetch error:', e);
+      if (globalPanicAlerts && globalPanicAlerts.length > 0) {
+        setAlerts(globalPanicAlerts);
+      } else {
+        setError(e.message || 'Failed to load panic alerts');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [globalPanicAlerts]);
 
   useEffect(() => {
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 300000);
+    return () => clearInterval(interval);
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    if (alerts.length === 0) return;
     const dtids = alerts.map(a => a.dtid).filter(Boolean);
-    const missing = dtids.filter(d => !touristByDtid[d]);
-    if (missing.length === 0) return;
+
+    let needsUpdate = false;
+    const missingDtids = [];
+
+    dtids.forEach(dtid => {
+      if (globalTouristsMap[dtid] && !touristByDtid[dtid]) {
+        needsUpdate = true;
+      } else if (!touristByDtid[dtid] && !globalTouristsMap[dtid]) {
+        missingDtids.push(dtid);
+      }
+    });
+
+    if (needsUpdate) {
+      setTouristByDtid(prev => ({ ...globalTouristsMap, ...prev }));
+    }
+
+    if (missingDtids.length === 0) return;
+
     let cancelled = false;
-
-    const concurrency = 4;
-    let i = 0;
-
-    async function worker() {
-      while (i < missing.length && !cancelled) {
-        const dtid = missing[i++];
+    async function loadMissing() {
+      for (const dtid of missingDtids) {
+        if (cancelled) break;
         try {
-          const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/tourists/${dtid}`);
-          if (!cancelled) {
-            setTouristByDtid(prev => (prev[dtid] ? prev : { ...prev, [dtid]: data }));
+          const { data } = await axios.get(`${API_BASE_URL}/api/tourists/${dtid}`);
+          if (!cancelled && data) {
+            setTouristByDtid(prev => ({ ...prev, [dtid]: data }));
           }
-        } catch {
-        }
+        } catch (err) {}
       }
     }
 
-    const workers = Array.from({ length: Math.min(concurrency, missing.length) }, () => worker());
-    Promise.all(workers);
+    loadMissing();
     return () => { cancelled = true; };
-  }, [alerts, touristByDtid]);
+  }, [alerts, globalTouristsMap]);
+
+  const stats = useMemo(() => {
+    let active = 0;
+    alerts.forEach(a => {
+      const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+      if (!tourist || tourist.isActive !== false) active++;
+    });
+    return { total: alerts.length, active, resolved: alerts.length - active };
+  }, [alerts, touristByDtid, globalTouristsMap]);
+
+  const filteredAlerts = useMemo(() => {
+    let list = alerts;
+
+    if (filterMode === 'active') {
+      list = list.filter(a => {
+        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+        return !tourist || tourist.isActive !== false;
+      });
+    } else if (filterMode === 'resolved') {
+      list = list.filter(a => {
+        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+        return tourist && tourist.isActive === false;
+      });
+    }
+
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(a => {
+        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
+        const name = String(tourist?.fullName || '').toLowerCase();
+        const dtid = String(a.dtid || '').toLowerCase();
+        const email = String(a.email || '').toLowerCase();
+        return dtid.includes(q) || name.includes(q) || email.includes(q);
+      });
+    }
+
+    return list;
+  }, [alerts, filterMode, query, touristByDtid, globalTouristsMap]);
 
   return (
-    <div className="pa-dashboard-container">
-      <div className="pa-dashboard-header">
-        <div className="pa-header-content">
-          <h2 className="pa-section-title">
-            <ShieldAlert size={22} className="pa-section-icon" />
-            Panic Alerts
-          </h2>
-          <p className="pa-section-subtitle">Live emergencies reported by tourists</p>
-        </div>
-        <div className="pa-header-actions">
-          <button className="pa-btn" onClick={refresh} disabled={loading}>
-            <RefreshCw size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-            Refresh
-          </button>
-          {lastUpdated && <div className="pa-last-updated">Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(lastUpdated)}</div>}
+    <div className="pa-dashboard-wrapper fade-in">
+      {/* Hero Header */}
+      <div className="pa-hero-header">
+        <div className="pa-hero-container">
+          <div className="pa-hero-title-group">
+            <span className="pa-hazard-pill">
+              <AlertOctagon size={14} className="sos-pulse" /> Emergency Response Center
+            </span>
+            <h1 className="pa-hero-title">Live Panic & SOS Alerts</h1>
+            <p className="pa-hero-subtitle">
+              Instant distress signals broadcast by registered tourists in real time via mobile apps.
+            </p>
+          </div>
+
+          <div className="pa-hero-stats">
+            <div className="pa-stat-box sos-box" onClick={() => setFilterMode('active')}>
+              <span className="num">{stats.active}</span>
+              <span className="lbl">Active SOS Alerts</span>
+            </div>
+            <div className="pa-stat-box total-box" onClick={() => setFilterMode('all')}>
+              <span className="num">{stats.total}</span>
+              <span className="lbl">Total Reported</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {loading && (
-        <div className="skeleton-grid">
-          {Array.from({ length: Math.max(3, Math.min(8, alerts.length || 6)) }).map((_, i) => (
-            <div key={i} className="skeleton-card">
-              <div className="skeleton header" />
-              <div className="skeleton line" />
-              <div className="skeleton line" />
-              <div className="skeleton line short" />
-              <div className="skeleton footer" />
-            </div>
-          ))}
-        </div>
-      )}
-      {error && (
-        <div className="pa-error-message">
-          <div className="pa-error-icon">⚠️</div>
-          <p>{error}</p>
-        </div>
-      )}
+      {/* Main Container */}
+      <div className="pa-main-body">
+        {/* Controls Bar */}
+        <div className="pa-controls-bar">
+          <div className="pa-search-field">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search Panic Alerts by DTID, Name, or Email..."
+              className="pa-input-element"
+            />
+            {query && (
+              <button onClick={() => setQuery('')} className="btn-clear">
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-      {alerts.length === 0 && !loading ? (
-        <div className="pa-empty-state">
-          <ShieldAlert size={52} color="#CBD5E1" className="pa-empty-icon" />
-          <h3>No panic alerts</h3>
-          <p>No active panic alerts found.</p>
+          <div className="pa-filter-buttons">
+            <button
+              className={`filter-tab ${filterMode === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterMode('all')}
+            >
+              All Signals ({stats.total})
+            </button>
+            <button
+              className={`filter-tab ${filterMode === 'active' ? 'active' : ''}`}
+              onClick={() => setFilterMode('active')}
+            >
+              <span className="red-dot"></span> Active SOS ({stats.active})
+            </button>
+            <button
+              className={`filter-tab ${filterMode === 'resolved' ? 'active' : ''}`}
+              onClick={() => setFilterMode('resolved')}
+            >
+              <span className="grey-dot"></span> Cleared ({stats.resolved})
+            </button>
+          </div>
+
+          <div className="pa-right-meta">
+            <button className="pa-btn-refresh" onClick={fetchAlerts} disabled={loading}>
+              <RefreshCw size={15} />
+              <span>Refresh Alerts</span>
+            </button>
+            {lastUpdated && (
+              <span className="pa-updated-time">
+                Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(lastUpdated)}
+              </span>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="pa-tourists-grid">
-          {alerts.map((a, index) => (
-            <div key={a.id ?? `${a.dtid}-${index}`} className="pa-tourist-card-wrapper">
-              <MemoTouristCard tourist={touristByDtid[a.dtid]} index={index} alert={a} />
-            </div>
-          ))}
-        </div>
-      )}
+
+        {/* Loading */}
+        {loading && alerts.length === 0 && (
+          <div className="pa-skeleton-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="pa-skeleton-card">
+                <div className="pa-skel-head" />
+                <div className="pa-skel-line" />
+                <div className="pa-skel-line short" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && alerts.length === 0 && (
+          <div className="pa-error-banner">
+            <AlertOctagon size={24} />
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {filteredAlerts.length === 0 && !loading ? (
+          <div className="pa-empty-card">
+            <ShieldAlert size={56} className="empty-svg" />
+            <h3>No Panic Signals Found</h3>
+            <p>No active distress panic alerts recorded matching your query.</p>
+          </div>
+        ) : (
+          <div className="pa-cards-grid">
+            {filteredAlerts.map((a, index) => (
+              <MemoTouristCard
+                key={a.id ?? `${a.dtid}-${index}`}
+                tourist={touristByDtid[a.dtid] || globalTouristsMap[a.dtid]}
+                index={index}
+                alert={a}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
