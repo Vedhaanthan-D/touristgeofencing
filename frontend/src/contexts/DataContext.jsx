@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { apiClient } from '../config/api';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
@@ -12,6 +13,7 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }) => {
+    const { user } = useAuth();
     const [tourists, setTourists] = useState([]);
     const [panicAlerts, setPanicAlerts] = useState([]);
     const [safetyAlerts, setSafetyAlerts] = useState([]);
@@ -104,12 +106,14 @@ export const DataProvider = ({ children }) => {
         }, 5000);
     }, [triggerRefresh]);
 
-    // Load initial data on mount
+    // Load data when user is authenticated
     useEffect(() => {
+        if (!user) return;
+
         fetchTourists();
         fetchPanicAlerts();
         fetchSafetyAlerts();
-    }, [fetchTourists, fetchPanicAlerts, fetchSafetyAlerts]);
+    }, [user, fetchTourists, fetchPanicAlerts, fetchSafetyAlerts]);
 
     const value = {
         tourists,
