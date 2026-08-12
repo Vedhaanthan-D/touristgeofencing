@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { 
     Search, AlertTriangle, RefreshCw, Users, SearchX, 
     ShieldCheck, Clock, MapPin, Phone, Mail, Calendar, 
-    Eye, X, Copy, Check, Filter, UserCheck, LayoutGrid, Table as TableIcon 
+    Eye, X, Copy, Check, Filter, UserCheck, LayoutGrid, Table as TableIcon,
+    CalendarDays, User, PhoneCall
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import './Dashboard.css';
 import './TouristList.css';
 
 function TouristList() {
@@ -43,6 +45,32 @@ function TouristList() {
         return date.toLocaleDateString('en-IN', {
             year: 'numeric', month: 'short', day: 'numeric'
         });
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp && timestamp !== 0) return 'N/A';
+        const num = Number(timestamp);
+        const seconds = Number.isFinite(num) ? num : 0;
+        const date = new Date(seconds * 1000);
+        if (isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleDateString('en-IN', {
+            year: 'numeric', month: 'short', day: 'numeric'
+        });
+    };
+
+    const getTouristStatus = (tourist) => {
+        if (!tourist) return 'returned';
+        const currentTime = Math.floor(Date.now() / 1000);
+        const returnDate = tourist.returnDate || tourist.validTill;
+        const isActive = tourist.isActive !== undefined ? tourist.isActive : (returnDate ? returnDate > currentTime : true);
+        
+        if (!isActive) return 'returned';
+        if (!returnDate) return 'active';
+        
+        const diffHours = (returnDate - currentTime) / 3600;
+        if (diffHours < 0) return 'overdue';
+        if (diffHours <= 24) return 'returning-soon';
+        return 'active';
     };
 
     const isValidTouristId = (tourist) => {
@@ -365,68 +393,154 @@ function TouristList() {
                 )}
             </div>
 
-            {/* Tourist Detail Drawer Modal */}
+            {/* BRAND NEW TOURIST DOSSIER VIEW MODAL (MATCHING DASHBOARD) */}
             {selectedTourist && (
-                <div className="tl-drawer-overlay" onClick={() => setSelectedTourist(null)}>
-                    <div className="tl-drawer-panel" onClick={(e) => e.stopPropagation()}>
-                        <div className="tl-drawer-header">
-                            <div className="drawer-avatar-lg">
-                                {(selectedTourist.fullName || 'T').charAt(0).toUpperCase()}
+                <div className="dossier-modal-overlay" onClick={() => setSelectedTourist(null)}>
+                    <div className="dossier-modal-container" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header Banner */}
+                        <div className="dossier-modal-header">
+                            <div className="dossier-header-left">
+                                <div className={`dossier-avatar-ring ring-${getTouristStatus(selectedTourist)}`}>
+                                    <div className="dossier-avatar-circle">
+                                        {(selectedTourist.fullName || 'T').charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div className="dossier-header-titles">
+                                    <div className="dossier-name-row">
+                                        <h2>{selectedTourist.fullName || 'Tourist Profile'}</h2>
+                                        <span className={`dossier-status-pill pill-${getTouristStatus(selectedTourist)}`}>
+                                            {getTouristStatus(selectedTourist) === 'active' ? '🟢 Active Traveler' :
+                                             getTouristStatus(selectedTourist) === 'returned' ? '🔵 Returned / Inactive' :
+                                             getTouristStatus(selectedTourist) === 'overdue' ? '🔴 Overdue Return' : '🟡 Returning Soon'}
+                                        </span>
+                                    </div>
+                                    <div className="dossier-subtitle-tags">
+                                        <span>{selectedTourist.age ? `${selectedTourist.age} yrs` : 'Age N/A'}</span>
+                                        <span className="bullet-dot">•</span>
+                                        <span>{selectedTourist.gender || 'Gender N/A'}</span>
+                                        <span className="bullet-dot">•</span>
+                                        <span>{selectedTourist.numberOfTravellers || 1} Traveller(s)</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="drawer-title-group">
-                                <h2>{selectedTourist.fullName || 'Tourist Record'}</h2>
-                                <span className={`tl-status-chip ${isValidTouristId(selectedTourist) ? 'chip-active' : 'chip-returned'}`}>
-                                    <span className="dot"></span>
-                                    {isValidTouristId(selectedTourist) ? 'Active Safety Tracking' : 'Returned / Record Completed'}
-                                </span>
-                            </div>
-                            <button className="btn-close-drawer" onClick={() => setSelectedTourist(null)}>
-                                <X size={20} />
+                            <button className="dossier-modal-close" onClick={() => setSelectedTourist(null)} title="Close Profile" aria-label="Close">
+                                <X size={20} color="#FFFFFF" strokeWidth={2.5} className="dossier-x-icon" />
                             </button>
                         </div>
 
-                        <div className="tl-drawer-dtid-bar">
-                            <label>DIGITAL TOURIST ID (DTID)</label>
-                            <div className="dtid-val-row">
-                                <code>{selectedTourist.dtid}</code>
-                                <button className="dtid-copy-btn" onClick={(e) => handleCopyDtid(selectedTourist.dtid, e)}>
-                                    {copiedDtid === selectedTourist.dtid ? 'Copied!' : 'Copy ID'}
-                                </button>
+                        {/* Monospace DTID Strip */}
+                        <div className="dossier-dtid-strip" onClick={(e) => handleCopyDtid(selectedTourist.dtid, e)}>
+                            <div className="dossier-dtid-badge">
+                                <span>DIGITAL TOURIST ID (DTID)</span>
+                            </div>
+                            <div className="dossier-dtid-code">
+                                {selectedTourist.dtid}
+                            </div>
+                            <button className="dossier-copy-btn">
+                                {copiedDtid === selectedTourist.dtid ? (
+                                    <span className="copied-text"><Check size={14} /> Copied!</span>
+                                ) : (
+                                    <span><Copy size={14} /> Copy</span>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Top Quick Stats Tiles Bar */}
+                        <div className="dossier-quick-tiles">
+                            <div className="dossier-tile tile-blue">
+                                <span className="tile-icon"><MapPin size={16} /></span>
+                                <div>
+                                    <span className="tile-label">Destination</span>
+                                    <strong className="tile-val-highlight">
+                                        {selectedTourist.tripDetails?.destination || 'N/A'}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div className="dossier-tile">
+                                <span className="tile-icon"><CalendarDays size={16} /></span>
+                                <div>
+                                    <span className="tile-label">Check-in Date</span>
+                                    <strong className="tile-val">
+                                        {selectedTourist.tripDetails?.startDate || formatDate(selectedTourist.issuedAt)}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div className="dossier-tile">
+                                <span className="tile-icon"><Clock size={16} /></span>
+                                <div>
+                                    <span className="tile-label">Expected Return</span>
+                                    <strong className="tile-val">{formatDate(selectedTourist.returnDate || selectedTourist.validTill)}</strong>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="tl-drawer-body">
-                            {/* Personal Details */}
-                            <div className="drawer-section-card">
-                                <h4>Personal Information</h4>
-                                <div className="drawer-grid-2">
-                                    <div><span>Aadhaar / Passport:</span> <strong>{selectedTourist.aadhaarLast4 ? `•••• •••• ${selectedTourist.aadhaarLast4}` : (selectedTourist.aadhaar ? `•••• •••• ${String(selectedTourist.aadhaar).slice(-4)}` : 'N/A')}</strong></div>
-                                    <div><span>Age / Gender:</span> <strong>{selectedTourist.age ? `${selectedTourist.age} yrs` : 'N/A'} • {selectedTourist.gender || 'N/A'}</strong></div>
-                                    <div><span>Mobile Number:</span> <strong>{selectedTourist.mobileNumber || 'N/A'}</strong></div>
-                                    <div><span>Email Address:</span> <strong>{selectedTourist.email || 'N/A'}</strong></div>
+                        {/* Scrollable Content Body */}
+                        <div className="dossier-modal-body">
+                            
+                            {/* Personal Profile Section Card */}
+                            <div className="dossier-card">
+                                <div className="dossier-card-title">
+                                    <User size={16} className="text-primary" />
+                                    <h3>Personal Profile Information</h3>
+                                </div>
+                                <div className="dossier-grid-rows">
+                                    <div className="dossier-field-box">
+                                        <span className="field-name">Age</span>
+                                        <span className="field-value">{selectedTourist.age ? `${selectedTourist.age} yrs` : 'N/A'}</span>
+                                    </div>
+                                    <div className="dossier-field-box">
+                                        <span className="field-name">Gender</span>
+                                        <span className="field-value">{selectedTourist.gender || 'N/A'}</span>
+                                    </div>
+                                    <div className="dossier-field-box">
+                                        <span className="field-name">Mobile Phone</span>
+                                        <div className="field-val-action">
+                                            <span className="field-value">{selectedTourist.mobileNumber || 'N/A'}</span>
+                                            {selectedTourist.mobileNumber && (
+                                                <a href={`tel:${selectedTourist.mobileNumber}`} className="dossier-mini-call-btn" title="Call">
+                                                    <PhoneCall size={12} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="dossier-field-box span-2">
+                                        <span className="field-name">Email Address</span>
+                                        <span className="field-value word-break">{selectedTourist.email || 'N/A'}</span>
+                                    </div>
+                                    {(selectedTourist.aadhaarLast4 || selectedTourist.aadhaar) && (
+                                        <div className="dossier-field-box span-2">
+                                            <span className="field-name">Aadhaar / Identity Document</span>
+                                            <span className="field-value">
+                                                {selectedTourist.aadhaarLast4 ? `•••• •••• ${selectedTourist.aadhaarLast4}` : `•••• •••• ${String(selectedTourist.aadhaar).slice(-4)}`}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Trip Plan */}
-                            <div className="drawer-section-card">
-                                <h4>Travel & Itinerary Details</h4>
-                                <div className="drawer-grid-2">
-                                    <div><span>Destination:</span> <strong className="text-primary">{selectedTourist.tripDetails?.destination || 'N/A'}</strong></div>
-                                    <div><span>Check-in Date:</span> <strong>{selectedTourist.tripDetails?.startDate || formatUnixSecondsToLocale(selectedTourist.issuedAt)}</strong></div>
-                                    <div><span>Check-out Date:</span> <strong>{formatUnixSecondsToLocale(selectedTourist.returnDate || selectedTourist.validTill)}</strong></div>
-                                    <div><span>Total Group Size:</span> <strong>{selectedTourist.numberOfTravellers || 1} Member(s)</strong></div>
-                                </div>
-                            </div>
-
-                            {/* Family Members */}
+                            {/* Family & Group Members */}
                             {selectedTourist.familyMembers && selectedTourist.familyMembers.length > 0 && (
-                                <div className="drawer-section-card">
-                                    <h4>Family Members & Group Companions ({selectedTourist.familyMembers.length})</h4>
-                                    <div className="companions-chips">
-                                        {selectedTourist.familyMembers.map((m, i) => (
-                                            <div key={i} className="companion-chip">
-                                                <strong>{m.fullName || m.name || `Companion #${i + 1}`}</strong>
-                                                <span>{m.age ? `${m.age} yrs` : ''} {m.gender ? `• ${m.gender}` : ''}</span>
+                                <div className="dossier-card">
+                                    <div className="dossier-card-title">
+                                        <Users size={16} className="text-primary" />
+                                        <h3>Family & Co-Travellers ({selectedTourist.familyMembers.length})</h3>
+                                    </div>
+                                    <div className="dossier-people-grid">
+                                        {selectedTourist.familyMembers.map((member, idx) => (
+                                            <div key={idx} className="dossier-person-chip">
+                                                <div className="person-avatar">
+                                                    {(member.fullName || member.name || 'M').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="person-details">
+                                                    <strong className="person-name">{member.fullName || member.name || 'Group Member'}</strong>
+                                                    <span className="person-meta">
+                                                        {member.age ? `${member.age} yrs` : ''}
+                                                        {member.gender ? ` • ${member.gender}` : ''}
+                                                    </span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -435,24 +549,43 @@ function TouristList() {
 
                             {/* Emergency Contacts */}
                             {selectedTourist.emergencyContacts && selectedTourist.emergencyContacts.length > 0 && (
-                                <div className="drawer-section-card alert-section">
-                                    <h4>Emergency Contacts</h4>
-                                    <div className="emergency-contacts-list">
-                                        {selectedTourist.emergencyContacts.map((c, i) => (
-                                            <div key={i} className="contact-card-row">
-                                                <div>
-                                                    <strong>{c.name || `Contact #${i + 1}`}</strong>
-                                                    <span>{c.phone}</span>
+                                <div className="dossier-card card-emergency">
+                                    <div className="dossier-card-title title-red">
+                                        <Phone size={16} className="text-danger" />
+                                        <h3>Emergency Contacts ({selectedTourist.emergencyContacts.length})</h3>
+                                    </div>
+                                    <div className="dossier-emergency-list">
+                                        {selectedTourist.emergencyContacts.map((contact, idx) => (
+                                            <div key={idx} className="dossier-emergency-item">
+                                                <div className="emergency-avatar">
+                                                    {(contact.name || 'C').charAt(0).toUpperCase()}
                                                 </div>
-                                                <a href={`tel:${c.phone}`} className="btn-call-contact">
-                                                    <Phone size={14} /> Call
-                                                </a>
+                                                <div className="emergency-info">
+                                                    <strong className="contact-name">{contact.name || 'Emergency Contact'}</strong>
+                                                    <span className="contact-meta">
+                                                        {contact.phone} {contact.relation ? `• ${contact.relation}` : ''}
+                                                    </span>
+                                                </div>
+                                                {contact.phone && (
+                                                    <a href={`tel:${contact.phone}`} className="emergency-dial-btn">
+                                                        <PhoneCall size={14} /> Call Now
+                                                    </a>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
+
                         </div>
+
+                        {/* Modal Footer */}
+                        <div className="dossier-modal-footer">
+                            <button className="btn btn-outline btn-close-dossier" onClick={() => setSelectedTourist(null)}>
+                                Close Profile
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             )}
