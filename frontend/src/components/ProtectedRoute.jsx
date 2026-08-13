@@ -29,6 +29,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
         if (role === 'immigration') {
             return <Navigate to="/register" replace />;
         }
+        if (role === 'police' || role === 'forest') {
+            return <Navigate to="/dashboard" replace />;
+        }
         return <Navigate to="/unauthorized" replace />;
     }
 
