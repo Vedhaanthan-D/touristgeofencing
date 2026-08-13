@@ -26,6 +26,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     }
 
     if (allowedRoles && !allowedRoles.includes(role)) {
+        if (role === 'immigration') {
+            return <Navigate to="/register" replace />;
+        }
         return <Navigate to="/unauthorized" replace />;
     }
 
