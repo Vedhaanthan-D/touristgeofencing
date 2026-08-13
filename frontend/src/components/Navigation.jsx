@@ -6,20 +6,23 @@ import './Navigation.css';
 /** Renders top navigation bar with routing links and user authentication status. */
 function Navigation() {
     const location = useLocation();
-    const { user, logout } = useAuth();
+    const { user, role, roleLabel, logout } = useAuth();
 
-    const navItems = [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/', label: 'Tourist List', icon: Users },
-        { path: '/register', label: 'Register', icon: UserPlus },
-        { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren, isAlert: true },
-        { path: '/missing-complaints', label: 'Missing', icon: UserSearch },
+    const ALL_NAV_ITEMS = [
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'police', 'forest'] },
+        { path: '/', label: 'Tourist List', icon: Users, roles: ['admin', 'police', 'forest'] },
+        { path: '/register', label: 'Register', icon: UserPlus, roles: ['admin', 'immigration'] },
+        { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren, isAlert: true, roles: ['admin', 'police', 'forest'] },
+        { path: '/missing-complaints', label: 'Missing', icon: UserSearch, roles: ['admin', 'police', 'forest'] },
     ];
+
+    const navItems = ALL_NAV_ITEMS.filter(item => !role || item.roles.includes(role));
+    const brandHomePath = role === 'immigration' ? '/register' : '/dashboard';
 
     return (
         <nav className="navigation">
             <div className="nav-container">
-                <Link to="/" className="nav-brand">
+                <Link to={brandHomePath} className="nav-brand">
                     <div className="brand-icon-wrapper">
                         <img
                             src="Logo.png"
@@ -53,12 +56,22 @@ function Navigation() {
                     })}
 
                     {user ? (
-                        <button onClick={logout} className="nav-link nav-logout-btn" title={`Logged in as ${user.email}`}>
-                            <div className="nav-icon-box">
-                                <LogOut size={20} className="link-icon" />
+                        <div className="nav-user-badge-wrapper">
+                            <div className="nav-user-info">
+                                <span className="nav-user-email">{user.email}</span>
+                                {roleLabel && (
+                                    <span className={`nav-role-pill role-${role || 'default'}`}>
+                                        {roleLabel}
+                                    </span>
+                                )}
                             </div>
-                            <span className="nav-label-text">Logout</span>
-                        </button>
+                            <button onClick={logout} className="nav-link nav-logout-btn" title={`Signed in as ${user.email}`}>
+                                <div className="nav-icon-box">
+                                    <LogOut size={20} className="link-icon" />
+                                </div>
+                                <span className="nav-label-text">Logout</span>
+                            </button>
+                        </div>
                     ) : (
                         <Link to="/login" className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}>
                             <div className="nav-icon-box">

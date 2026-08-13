@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const Tourist = require('./models/Tourist');
 const { admin, db } = require('./firebase-config');
 const authenticateToken = require('./middleware/authenticateToken');
+const requireRole = require('./middleware/requireRole');
 const registerRateLimiter = require('./middleware/registerRateLimiter');
 const validateRegistration = require('./middleware/validateRegistration');
 
@@ -29,6 +30,15 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });
 });
 
+// Route to verify current authenticated user email & custom role claims
+app.get('/api/whoami', authenticateToken, (req, res) => {
+    res.status(200).json({
+        email: req.user.email || null,
+        uid: req.user.uid || null,
+        role: req.user.role || null
+    });
+});
+
 if (!process.env.AADHAAR_HMAC_SECRET) {
     throw new Error('FATAL: AADHAAR_HMAC_SECRET environment variable is missing.');
 }
@@ -37,7 +47,7 @@ if (!process.env.AADHAAR_HMAC_SECRET) {
 console.log('Firebase Admin SDK initialized successfully');
 console.log('Project ID:', admin.app().options.projectId);
 
-app.post('/api/register', registerRateLimiter, validateRegistration, async (req, res) => {
+app.post('/api/register', authenticateToken, requireRole('admin', 'immigration'), registerRateLimiter, validateRegistration, async (req, res) => {
     const { 
         aadhaar, 
         fullName, 
@@ -155,7 +165,7 @@ const computeTouristActiveStatus = (tourist) => {
     return { ...tourist, isActive };
 };
 
-app.get('/api/tourists', authenticateToken, async (req, res) => {
+app.get('/api/tourists', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
     try {
         const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
         const startAfter = req.query.startAfter ? String(req.query.startAfter) : null;
@@ -172,7 +182,7 @@ app.get('/api/tourists', authenticateToken, async (req, res) => {
 });
 
 // Fetch single tourist by DTID
-app.get('/api/tourists/:dtid', authenticateToken, async (req, res) => {
+app.get('/api/tourists/:dtid', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
     const { dtid } = req.params;
     if (!dtid) return res.status(400).json({ error: 'dtid is required' });
 
@@ -188,7 +198,7 @@ app.get('/api/tourists/:dtid', authenticateToken, async (req, res) => {
 });
 
 // Fetch panic alert emergencies
-app.get('/api/panic-alerts', authenticateToken, async (req, res) => {
+app.get('/api/panic-alerts', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
     try {
         const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
         let queryRef = db.collection('panic_alert_emergencies').orderBy('createdAt', 'desc').limit(limitParam);
@@ -210,7 +220,7 @@ app.get('/api/panic-alerts', authenticateToken, async (req, res) => {
 });
 
 // Fetch safety alerts (for missing complaints screen)
-app.get('/api/safety-alerts', authenticateToken, async (req, res) => {
+app.get('/api/safety-alerts', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
     try {
         const limitParam = req.query.limit ? parseInt(req.query.limit, 10) : 50;
         let queryRef = db.collection('safety_alerts').orderBy('createdAt', 'desc').limit(limitParam);
@@ -228,6 +238,23 @@ app.get('/api/safety-alerts', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error('Error fetching safety alerts:', err);
         res.status(500).json({ error: 'Something went wrong, please try again.' });
+    }
+});
+
+// Set user role (Admin only endpoint)
+app.post('/api/admin/set-role', authenticateToken, requireRole('admin'), async (req, res) => {
+    const { email, role } = req.body || {};
+    const VALID_ROLES = ['admin', 'police', 'forest', 'immigration'];
+    if (!email || !VALID_ROLES.includes(role)) {
+        return res.status(400).json({ error: 'Valid email and role (admin, police, forest, immigration) are required' });
+    }
+    try {
+        const targetUser = await admin.auth().getUserByEmail(email);
+        await admin.auth().setCustomUserClaims(targetUser.uid, { role });
+        return res.json({ status: 'success', message: `Assigned role ${role} to ${email}` });
+    } catch (err) {
+        console.error('Error setting role:', err);
+        return res.status(500).json({ error: err.message || 'Failed to assign role' });
     }
 });
 

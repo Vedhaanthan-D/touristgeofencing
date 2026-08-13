@@ -161,45 +161,30 @@ function TouristCard({ tourist, index, alert }) {
 const MemoTouristCard = memo(TouristCard);
 
 export default function PanicAlerts() {
-  const { touristsMap: globalTouristsMap, panicAlerts: globalPanicAlerts } = useData();
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    touristsMap: globalTouristsMap,
+    panicAlerts: globalPanicAlerts,
+    loadingPanic: loading,
+    fetchPanicAlerts,
+    triggerRefresh
+  } = useData();
+
   const [touristByDtid, setTouristByDtid] = useState({});
-  const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all');
 
-  const fetchAlerts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await apiClient.get('/api/panic-alerts');
-      const list = Array.isArray(data) ? data : [];
-      const sorted = list.slice().sort((a, b) => {
-        const da = new Date(a.createdAt).getTime() || 0;
-        const db = new Date(b.createdAt).getTime() || 0;
-        return db - da;
-      });
-      setAlerts(sorted);
-      setLastUpdated(Date.now());
-    } catch (e) {
-      console.error('Panic alerts fetch error:', e);
-      if (globalPanicAlerts && globalPanicAlerts.length > 0) {
-        setAlerts(globalPanicAlerts);
-      } else {
-        setError(e.message || 'Failed to load panic alerts');
-      }
-    } finally {
-      setLoading(false);
-    }
+  const alerts = useMemo(() => {
+    return [...(globalPanicAlerts || [])].sort((a, b) => {
+      const da = new Date(a.createdAt).getTime() || 0;
+      const db = new Date(b.createdAt).getTime() || 0;
+      return db - da;
+    });
   }, [globalPanicAlerts]);
 
-  useEffect(() => {
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 300000);
-    return () => clearInterval(interval);
-  }, [fetchAlerts]);
+  const handleRefresh = useCallback(() => {
+    fetchPanicAlerts();
+    triggerRefresh();
+  }, [fetchPanicAlerts, triggerRefresh]);
 
   useEffect(() => {
     if (alerts.length === 0) return;
@@ -347,15 +332,10 @@ export default function PanicAlerts() {
           </div>
 
           <div className="pa-right-meta">
-            <button className="pa-btn-refresh" onClick={fetchAlerts} disabled={loading}>
-              <RefreshCw size={15} />
+            <button className="pa-btn-refresh" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw size={15} className={loading ? 'spin-icon' : ''} />
               <span>Refresh Alerts</span>
             </button>
-            {lastUpdated && (
-              <span className="pa-updated-time">
-                Updated {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(lastUpdated)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -369,14 +349,6 @@ export default function PanicAlerts() {
                 <div className="pa-skel-line short" />
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {error && alerts.length === 0 && (
-          <div className="pa-error-banner">
-            <AlertOctagon size={24} />
-            <p>{error}</p>
           </div>
         )}
 

@@ -1,15 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, Mail, ShieldAlert, LogIn } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, LogIn, Shield, CheckCircle2 } from 'lucide-react';
 import './Login.css';
 
-/** Renders the admin/officer login interface using Firebase Auth. */
+const ROLE_LABEL_MAP = {
+    admin: 'Administrator',
+    police: 'Police Officer',
+    forest: 'Forest Officer',
+    immigration: 'Immigration Officer'
+};
+
+/** Renders the official portal login interface with role authentication and ocean glassmorphism design. */
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [successRole, setSuccessRole] = useState(null);
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -19,27 +27,42 @@ export default function Login() {
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccessRole(null);
         setIsSubmitting(true);
         try {
-            await login(email, password);
-            navigate(from, { replace: true });
+            const res = await login(email, password);
+            const userRole = res?.role || null;
+            setSuccessRole(userRole);
+
+            const defaultTarget = userRole === 'immigration' ? '/register' : '/dashboard';
+            const targetPath = (from && from !== '/login') ? from : defaultTarget;
+
+            // Give a short delay to display the role confirmation chip before navigating
+            setTimeout(() => {
+                navigate(targetPath, { replace: true });
+            }, 750);
         } catch (err) {
             console.error('Login failure:', err);
             setError(err.message || 'Invalid email or password.');
-        } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="login-container">
+        <div className="login-container fade-in">
+            {/* Animated Ocean Backdrop Blobs */}
+            <div className="login-backdrop">
+                <div className="login-blob blob-1" />
+                <div className="login-blob blob-2" />
+            </div>
+
             <div className="login-card">
                 <div className="login-header">
                     <div className="login-icon-badge">
-                        <Lock size={28} />
+                        <Shield size={28} className="shield-icon" />
                     </div>
                     <h2>Official Portal Access</h2>
-                    <p>Enter administrative credentials to log in</p>
+                    <p>Enter your department credentials to access the safety portal</p>
                 </div>
 
                 {error && (
@@ -49,9 +72,16 @@ export default function Login() {
                     </div>
                 )}
 
+                {successRole !== null && (
+                    <div className="login-success-chip">
+                        <CheckCircle2 size={16} />
+                        <span>Authenticated as <strong>{ROLE_LABEL_MAP[successRole] || 'Official'}</strong></span>
+                    </div>
+                )}
+
                 <form onSubmit={handleLogin} className="login-form">
                     <div className="form-group">
-                        <label htmlFor="email-input">Email Address</label>
+                        <label htmlFor="email-input">Official Email Address</label>
                         <div className="input-with-icon">
                             <Mail size={18} className="field-icon" />
                             <input
@@ -59,7 +89,7 @@ export default function Login() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="officer@safety.gov"
+                                placeholder="officer@geofence.gov"
                                 required
                             />
                         </div>
@@ -82,12 +112,12 @@ export default function Login() {
 
                     <button type="submit" className="login-submit-btn" disabled={isSubmitting}>
                         <LogIn size={18} />
-                        <span>{isSubmitting ? 'Authenticating...' : 'Sign In'}</span>
+                        <span>{isSubmitting ? 'Verifying Credentials...' : 'Sign In'}</span>
                     </button>
                 </form>
 
                 <div className="login-admin-notice">
-                    <p><strong>Note:</strong> Officer/Admin accounts must be created manually via Firebase Console.</p>
+                    <p>Officer accounts and role access (Police, Forest, Immigration, Admin) are provisioned by your system administrator.</p>
                 </div>
             </div>
         </div>

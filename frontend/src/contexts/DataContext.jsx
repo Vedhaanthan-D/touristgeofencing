@@ -13,7 +13,7 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }) => {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [tourists, setTourists] = useState([]);
     const [panicAlerts, setPanicAlerts] = useState([]);
     const [safetyAlerts, setSafetyAlerts] = useState([]);
@@ -106,14 +106,14 @@ export const DataProvider = ({ children }) => {
         }, 5000);
     }, [triggerRefresh]);
 
-    // Load data when user is authenticated
+    // Load data when user is authenticated with a monitoring role
     useEffect(() => {
-        if (!user) return;
+        if (!user || !['admin', 'police', 'forest'].includes(role)) return;
 
         fetchTourists();
         fetchPanicAlerts();
         fetchSafetyAlerts();
-    }, [user, fetchTourists, fetchPanicAlerts, fetchSafetyAlerts]);
+    }, [user, role, fetchTourists, fetchPanicAlerts, fetchSafetyAlerts]);
 
     const value = {
         tourists,

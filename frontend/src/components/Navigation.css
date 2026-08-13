@@ -262,6 +262,72 @@
   font-family: inherit;
 }
 
+/* User Badge & Role Pills */
+.nav-user-badge-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.nav-user-email {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.nav-role-pill.role-police {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.nav-role-pill.role-forest {
+  background: rgba(6, 182, 212, 0.12);
+  color: #0891b2;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.nav-role-pill.role-immigration {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4f46e5;
+  border: 1px solid rgba(79, 70, 229, 0.3);
+}
+
+.nav-role-pill.role-admin {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.nav-role-pill.role-default {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
 @media (max-width: 840px) {
   .nav-container {
     padding: 1rem;
@@ -280,4 +346,13 @@
     min-width: 120px;
     justify-content: center;
   }
-}
+
+  .nav-user-badge-wrapper {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .nav-user-info {
+    align-items: center;
+  }
+}

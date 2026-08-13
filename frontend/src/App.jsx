@@ -6,6 +6,8 @@ import Dashboard from './components/Dashboard';
 import PanicAlerts from './components/PanicAlerts';
 import MissingComplaints from './components/MissingComplaints';
 import Login from './components/Login';
+import PendingRole from './components/PendingRole';
+import Unauthorized from './components/Unauthorized';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
@@ -24,11 +26,13 @@ function App() {
 
                         <Routes>
                             <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Registration />} />
-                            <Route path="/" element={<ProtectedRoute><TouristList /></ProtectedRoute>} />
-                            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                            <Route path="/panic-alerts" element={<ProtectedRoute><PanicAlerts /></ProtectedRoute>} />
-                            <Route path="/missing-complaints" element={<ProtectedRoute><MissingComplaints /></ProtectedRoute>} />
+                            <Route path="/pending-role" element={<PendingRole />} />
+                            <Route path="/unauthorized" element={<Unauthorized />} />
+                            <Route path="/register" element={<ProtectedRoute allowedRoles={['admin', 'immigration']}><Registration /></ProtectedRoute>} />
+                            <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><TouristList /></ProtectedRoute>} />
+                            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><Dashboard /></ProtectedRoute>} />
+                            <Route path="/panic-alerts" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><PanicAlerts /></ProtectedRoute>} />
+                            <Route path="/missing-complaints" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><MissingComplaints /></ProtectedRoute>} />
                         </Routes>
                     </div>
                 </Router>

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { apiClient } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { AlertTriangle, MapPin, X, Clock } from 'lucide-react';
 import './SOSToast.css';
 
@@ -90,24 +91,25 @@ function SOSToastItem({ alert, tourist, kind, onDismiss }) {
 }
 
 export default function SOSToast() {
+    const { user, role } = useAuth();
+    const { panicAlerts, safetyAlerts, touristsMap, fetchTouristByDtid } = useData();
+    const canMonitorAlerts = Boolean(user && ['admin', 'police', 'forest'].includes(role));
     const [toasts, setToasts] = useState([]);
     const seenSosRef = useRef(null);
     const seenIdleRef = useRef(null);
-    const touristCacheRef = useRef({});
     const audioCtxRef = useRef(null);
 
     const dismiss = useCallback((id) => {
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
-    const fetchTourist = useCallback(async (dtid) => {
-        if (!dtid || touristCacheRef.current[dtid]) return;
-        try {
-            const { data } = await apiClient.get(`/api/tourists/${dtid}`);
-            touristCacheRef.current[dtid] = data;
-            setToasts(prev => prev.map(t => t.alert.dtid === dtid ? { ...t, tourist: data } : t));
-        } catch { /* fall back to DTID display */ }
-    }, []);
+    const enrichToastWithTourist = useCallback(async (dtid) => {
+        if (!dtid) return;
+        const tourist = await fetchTouristByDtid(dtid);
+        if (tourist) {
+            setToasts(prev => prev.map(t => t.alert.dtid === dtid ? { ...t, tourist } : t));
+        }
+    }, [fetchTouristByDtid]);
 
     const playSound = useCallback(async (isIdle = false) => {
         try {
@@ -123,6 +125,11 @@ export default function SOSToast() {
 
     // Real-time listener for panic alerts (SOS) using Firebase onSnapshot
     useEffect(() => {
+        if (!canMonitorAlerts || !panicAlerts) return;
+        if (seenSosRef.current === null) {
+            seenSosRef.current = new Set((panicAlerts || []).map(a => a.id));
+        }
+
         let q;
         try {
             q = query(
@@ -137,28 +144,34 @@ export default function SOSToast() {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (seenSosRef.current === null) {
-                seenSosRef.current = new Set(list.map(a => a.id));
-                return;
-            }
             const newAlerts = list.filter(a => !seenSosRef.current.has(a.id));
             if (!newAlerts.length) return;
             newAlerts.forEach(a => seenSosRef.current.add(a.id));
             playSound(false);
             setToasts(prev => [
                 ...prev,
-                ...newAlerts.map(a => ({ id: `sos-${a.id}`, alert: a, kind: 'sos', tourist: touristCacheRef.current[a.dtid] || null }))
+                ...newAlerts.map(a => ({
+                    id: `sos-${a.id}`,
+                    alert: a,
+                    kind: 'sos',
+                    tourist: touristsMap[a.dtid] || null
+                }))
             ]);
-            newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
+            newAlerts.forEach(a => a.dtid && enrichToastWithTourist(a.dtid));
         }, (error) => {
             console.warn('Real-time panic alert listener warning:', error);
         });
 
         return () => unsubscribe();
-    }, [playSound, fetchTourist]);
+    }, [canMonitorAlerts, panicAlerts, touristsMap, playSound, enrichToastWithTourist]);
 
     // Real-time listener for safety alerts (Idle) using Firebase onSnapshot
     useEffect(() => {
+        if (!canMonitorAlerts || !safetyAlerts) return;
+        if (seenIdleRef.current === null) {
+            seenIdleRef.current = new Set((safetyAlerts || []).map(a => a.id));
+        }
+
         let q;
         try {
             q = query(
@@ -173,27 +186,28 @@ export default function SOSToast() {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (seenIdleRef.current === null) {
-                seenIdleRef.current = new Set(list.map(a => a.id));
-                return;
-            }
             const newAlerts = list.filter(a => !seenIdleRef.current.has(a.id));
             if (!newAlerts.length) return;
             newAlerts.forEach(a => seenIdleRef.current.add(a.id));
             playSound(true);
             setToasts(prev => [
                 ...prev,
-                ...newAlerts.map(a => ({ id: `idle-${a.id}`, alert: a, kind: 'idle', tourist: touristCacheRef.current[a.dtid] || null }))
+                ...newAlerts.map(a => ({
+                    id: `idle-${a.id}`,
+                    alert: a,
+                    kind: 'idle',
+                    tourist: touristsMap[a.dtid] || null
+                }))
             ]);
-            newAlerts.forEach(a => a.dtid && fetchTourist(a.dtid));
+            newAlerts.forEach(a => a.dtid && enrichToastWithTourist(a.dtid));
         }, (error) => {
             console.warn('Real-time safety alert listener warning:', error);
         });
 
         return () => unsubscribe();
-    }, [playSound, fetchTourist]);
+    }, [canMonitorAlerts, safetyAlerts, touristsMap, playSound, enrichToastWithTourist]);
 
-    if (toasts.length === 0) return null;
+    if (!canMonitorAlerts || toasts.length === 0) return null;
 
     return createPortal(
         <div className="sos-toast-container">

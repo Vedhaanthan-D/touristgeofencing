@@ -430,45 +430,30 @@ function TouristCard({ tourist, index, alert }) {
 const MemoTouristCard = memo(TouristCard);
 
 export default function MissingComplaints() {
-  const { touristsMap: globalTouristsMap, safetyAlerts: globalSafetyAlerts } = useData();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    touristsMap: globalTouristsMap,
+    safetyAlerts: globalSafetyAlerts,
+    loadingSafety: loading,
+    fetchSafetyAlerts,
+    triggerRefresh
+  } = useData();
+
   const [touristByDtid, setTouristByDtid] = useState({});
-  const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await apiClient.get('/api/safety-alerts');
-      const list = Array.isArray(data) ? data : [];
-      const sorted = list.slice().sort((a, b) => {
-        const da = new Date(a.createdAt).getTime() || 0;
-        const db = new Date(b.createdAt).getTime() || 0;
-        return db - da;
-      });
-      setItems(sorted);
-      setLastUpdated(Date.now());
-    } catch (e) {
-      console.error("Safety alerts fetch error:", e);
-      if (globalSafetyAlerts && globalSafetyAlerts.length > 0) {
-        setItems(globalSafetyAlerts);
-      } else {
-        setError(e.message || "Failed to load safety alerts");
-      }
-    } finally {
-      setLoading(false);
-    }
+  const items = useMemo(() => {
+    return [...(globalSafetyAlerts || [])].sort((a, b) => {
+      const da = new Date(a.createdAt).getTime() || 0;
+      const db = new Date(b.createdAt).getTime() || 0;
+      return db - da;
+    });
   }, [globalSafetyAlerts]);
 
-  useEffect(() => {
-    fetchItems();
-    const id = setInterval(fetchItems, 300000);
-    return () => clearInterval(id);
-  }, [fetchItems]);
+  const handleRefresh = useCallback(() => {
+    fetchSafetyAlerts();
+    triggerRefresh();
+  }, [fetchSafetyAlerts, triggerRefresh]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -617,15 +602,10 @@ export default function MissingComplaints() {
           </div>
 
           <div className="mc-actions-right">
-            <button className="btn-refresh-accent" onClick={fetchItems} disabled={loading}>
-              <RefreshCw size={15} />
+            <button className="btn-refresh-accent" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw size={15} className={loading ? "spin-icon" : ""} />
               <span>Refresh Alerts</span>
             </button>
-            {lastUpdated && (
-              <span className="mc-updated-text">
-                Updated {new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(lastUpdated)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -639,14 +619,6 @@ export default function MissingComplaints() {
                 <div className="mc-skel-line short" />
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {error && items.length === 0 && (
-          <div className="mc-error-card">
-            <AlertTriangle size={24} />
-            <p>{error}</p>
           </div>
         )}
 
