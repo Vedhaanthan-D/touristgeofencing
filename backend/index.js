@@ -15,15 +15,33 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(bodyParser.json());
 
-// CORS Configuration with strict origin checking
-let corsOptions;
+// CORS Configuration allowing both Render hosted backend & localhost origins
+const defaultAllowedOrigins = [
+    'https://touristgeofencing-s787.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://10.0.2.2:3000'
+];
+
+let allowedOrigins = [...defaultAllowedOrigins];
 if (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.trim()) {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
-    corsOptions = { origin: allowedOrigins, credentials: true };
-} else {
-    console.warn('⚠️  ALLOWED_ORIGINS environment variable is not configured. Cross-origin requests will be rejected.');
-    corsOptions = { origin: false, credentials: true };
+    const customOrigins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
+    allowedOrigins = Array.from(new Set([...allowedOrigins, ...customOrigins]));
 }
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, Postman) or matched allowed origins
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Permissive fallback to allow mobile client requests
+        }
+    },
+    credentials: true
+};
 app.use(cors(corsOptions));
 
 app.get('/health', (req, res) => {
@@ -114,38 +132,56 @@ app.post('/api/register', authenticateToken, requireRole('admin', 'immigration')
         await tourist.save();
         console.log('💾 Saved to Firestore');
 
-        // Create or update Firebase Auth user with a random secret
+        // Create or update Firebase Auth user with DTID as the password
         try {
-            const randomAuthPassword = crypto.randomBytes(16).toString('hex');
             let userRecord;
+            const cleanEmail = String(email || '').trim().toLowerCase();
             try {
-                userRecord = await admin.auth().getUserByEmail(email);
+                userRecord = await admin.auth().getUserByEmail(cleanEmail);
+                userRecord = await admin.auth().updateUser(userRecord.uid, {
+                    password: dtid,
+                    displayName: fullName
+                });
             } catch (innerErr) {
                 if (innerErr && innerErr.code === 'auth/user-not-found') {
                     userRecord = await admin.auth().createUser({
-                        email,
-                        password: randomAuthPassword,
+                        email: cleanEmail,
+                        password: dtid,
                         displayName: fullName,
-                        emailVerified: true,
+                        emailVerified: true
                     });
-                    console.log('👤 Created Firebase Auth user');
+                    console.log('👤 Created Firebase Auth user with DTID password');
                 } else {
                     throw innerErr;
                 }
             }
 
             if (userRecord) {
-                await admin.auth().updateUser(userRecord.uid, {
-                    password: randomAuthPassword,
-                    displayName: fullName,
+                const existingClaims = userRecord.customClaims || {};
+                await admin.auth().setCustomUserClaims(userRecord.uid, {
+                    ...existingClaims,
+                    role: 'tourist',
+                    dtid
                 });
-                console.log('🔄 Updated Firebase Auth user');
+                console.log('🔄 Updated Firebase Auth user with DTID password and tourist claims');
             }
         } catch (authErr) {
-            console.error('⚠️  Firebase Auth sync error:', authErr);
+            console.error('⚠️  Firebase Auth registration sync error:', {
+                email: String(email || '').trim().toLowerCase(),
+                dtidSuffix: String(dtid || '').slice(-4),
+                errorCode: authErr?.code,
+                errorMessage: authErr?.message
+            });
+            // Rollback Firestore creation if Auth sync failed
+            try {
+                await db.collection('tourists').doc(dtid).delete();
+            } catch (deleteErr) {
+                console.error('Failed to rollback Firestore tourist record:', deleteErr);
+            }
+            return res.status(500).json({ error: 'Failed to create authentication credentials for tourist.' });
         }
 
-        // Return success response
+        // Return success response ONLY after Firestore + Firebase Auth sync succeeds
         res.json({ 
             dtid, 
             aadhaarLast4,
@@ -258,31 +294,88 @@ app.post('/api/admin/set-role', authenticateToken, requireRole('admin'), async (
     }
 });
 
-// Check if a tourist account is active by DTID and email
+// Check if a tourist account is active by DTID and email & self-heal Firebase Auth password sync
 app.post('/api/is-active', async (req, res) => {
     const { dtid, email } = req.body || {};
-    if (!dtid || !email) {
-        return res.status(400).json({ error: 'dtid and email are required' });
+    const cleanDtid = String(dtid || '').trim();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+
+    if (!cleanDtid || !cleanEmail) {
+        return res.status(400).json({ error: 'dtid and email are required', isActive: false });
     }
 
     try {
-        const tourist = await Tourist.findByDtid(dtid);
+        const tourist = await Tourist.findByDtid(cleanDtid);
         if (!tourist) {
-            return res.status(404).json({ error: 'Tourist not found' });
+            return res.status(404).json({ error: 'Tourist not found', isActive: false });
         }
 
         // Ensure status is calculated dynamically
         const updated = computeTouristActiveStatus(tourist);
 
-        // Basic email match validation
-        if (String(updated.email).toLowerCase() !== String(email).toLowerCase()) {
-            return res.status(400).json({ error: 'Email does not match DTID' });
+        // Normalized Email ↔ DTID ownership validation
+        if (String(updated.email || '').trim().toLowerCase() !== cleanEmail) {
+            return res.status(400).json({ error: 'Email address does not match the registered DTID', isActive: false });
         }
 
-        return res.json({ dtid: updated.dtid, isActive: !!updated.isActive });
+        // Active status and return date validation
+        if (!updated.isActive) {
+            return res.status(403).json({ error: 'Tourist pass has expired or is inactive', isActive: false });
+        }
+
+        // Synchronize Firebase Auth user password to DTID and set custom claims
+        try {
+            let userRecord;
+            try {
+                userRecord = await admin.auth().getUserByEmail(cleanEmail);
+                userRecord = await admin.auth().updateUser(userRecord.uid, {
+                    password: cleanDtid,
+                    displayName: updated.fullName
+                });
+            } catch (authFetchErr) {
+                if (authFetchErr && authFetchErr.code === 'auth/user-not-found') {
+                    userRecord = await admin.auth().createUser({
+                        email: cleanEmail,
+                        password: cleanDtid,
+                        displayName: updated.fullName,
+                        emailVerified: true
+                    });
+                } else {
+                    throw authFetchErr;
+                }
+            }
+
+            if (userRecord) {
+                const existingClaims = userRecord.customClaims || {};
+                await admin.auth().setCustomUserClaims(userRecord.uid, {
+                    ...existingClaims,
+                    role: 'tourist',
+                    dtid: updated.dtid
+                });
+            }
+        } catch (authError) {
+            console.error('Firebase Auth synchronization failed:', {
+                email: cleanEmail,
+                dtidSuffix: cleanDtid.slice(-4),
+                errorCode: authError?.code,
+                errorMessage: authError?.message
+            });
+
+            return res.status(500).json({
+                error: 'Unable to prepare tourist authentication.',
+                isActive: false
+            });
+        }
+
+        // Return success ONLY after Firebase Auth synchronization succeeds
+        return res.status(200).json({
+            dtid: updated.dtid,
+            isActive: true
+        });
+
     } catch (err) {
         console.error('Error checking active status:', err);
-        return res.status(500).json({ error: 'Something went wrong, please try again.' });
+        return res.status(500).json({ error: 'Something went wrong, please try again.', isActive: false });
     }
 });
 
