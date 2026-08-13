@@ -286,4 +286,90 @@ app.post('/api/is-active', async (req, res) => {
     }
 });
 
+// Restricted Geofenced Zones APIs (Admin manage, Admin/Police/Forest read)
+app.get('/api/restricted-zones', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
+    try {
+        const snapshot = await db.collection('restricted_zones').get();
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json(data);
+    } catch (err) {
+        console.error('Error fetching restricted zones:', err);
+        res.status(500).json({ error: 'Failed to fetch restricted zones' });
+    }
+});
+
+app.post('/api/restricted-zones', authenticateToken, requireRole('admin'), async (req, res) => {
+    const { name, description, risk_level, polygon } = req.body || {};
+    if (!name || !Array.isArray(polygon) || polygon.length === 0) {
+        return res.status(400).json({ error: 'Name and at least one coordinate point are required' });
+    }
+
+    try {
+        const formattedPolygon = polygon.map(pt => ({
+            latitude: parseFloat(pt.latitude),
+            longitude: parseFloat(pt.longitude)
+        }));
+
+        const docRef = await db.collection('restricted_zones').add({
+            name: String(name).trim(),
+            description: String(description || '').trim(),
+            risk_level: risk_level || 'high',
+            polygon: formattedPolygon,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({ id: docRef.id, status: 'success', message: 'Restricted zone added successfully' });
+    } catch (err) {
+        console.error('Error adding restricted zone:', err);
+        res.status(500).json({ error: 'Failed to add restricted zone' });
+    }
+});
+
+app.put('/api/restricted-zones/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+    const { id } = req.params;
+    const { name, description, risk_level, polygon } = req.body || {};
+    if (!id || !name || !Array.isArray(polygon) || polygon.length === 0) {
+        return res.status(400).json({ error: 'ID, name, and polygon coordinates are required' });
+    }
+
+    try {
+        const docRef = db.collection('restricted_zones').doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Restricted zone not found' });
+        }
+
+        const formattedPolygon = polygon.map(pt => ({
+            latitude: parseFloat(pt.latitude),
+            longitude: parseFloat(pt.longitude)
+        }));
+
+        await docRef.update({
+            name: String(name).trim(),
+            description: String(description || '').trim(),
+            risk_level: risk_level || 'high',
+            polygon: formattedPolygon,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({ status: 'success', message: 'Restricted zone updated successfully' });
+    } catch (err) {
+        console.error('Error updating restricted zone:', err);
+        res.status(500).json({ error: 'Failed to update restricted zone' });
+    }
+});
+
+app.delete('/api/restricted-zones/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Zone ID is required' });
+
+    try {
+        await db.collection('restricted_zones').doc(id).delete();
+        res.json({ status: 'success', message: 'Restricted zone deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting restricted zone:', err);
+        res.status(500).json({ error: 'Failed to delete restricted zone' });
+    }
+});
+
 app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));

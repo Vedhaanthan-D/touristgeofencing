@@ -5,6 +5,7 @@ import Registration from './components/Registration';
 import Dashboard from './components/Dashboard';
 import PanicAlerts from './components/PanicAlerts';
 import MissingComplaints from './components/MissingComplaints';
+import ManageZones from './components/ManageZones';
 import Login from './components/Login';
 import PendingRole from './components/PendingRole';
 import Unauthorized from './components/Unauthorized';
@@ -29,6 +30,7 @@ function App() {
                             <Route path="/pending-role" element={<PendingRole />} />
                             <Route path="/unauthorized" element={<Unauthorized />} />
                             <Route path="/register" element={<ProtectedRoute allowedRoles={['admin', 'immigration']}><Registration /></ProtectedRoute>} />
+                            <Route path="/manage-zones" element={<ProtectedRoute allowedRoles={['admin']}><ManageZones /></ProtectedRoute>} />
                             <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><TouristList /></ProtectedRoute>} />
                             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><Dashboard /></ProtectedRoute>} />
                             <Route path="/panic-alerts" element={<ProtectedRoute allowedRoles={['admin', 'police', 'forest']}><PanicAlerts /></ProtectedRoute>} />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, UserPlus, Siren, UserSearch, LogOut, LogIn, User, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Siren, UserSearch, LogOut, LogIn, User, ChevronDown, MapPin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './Navigation.css';
 
@@ -29,6 +29,7 @@ function Navigation() {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'police', 'forest'] },
         { path: '/', label: 'Tourist List', icon: Users, roles: ['admin', 'police', 'forest'] },
         { path: '/register', label: 'Register', icon: UserPlus, roles: ['admin', 'immigration'] },
+        { path: '/manage-zones', label: 'Manage Zones', icon: MapPin, roles: ['admin'] },
         { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren, isAlert: true, roles: ['admin', 'police', 'forest'] },
         { path: '/missing-complaints', label: 'Missing', icon: UserSearch, roles: ['admin', 'police', 'forest'] },
     ];
