@@ -8,6 +8,33 @@ import { AlertTriangle, MapPin, X, Clock } from 'lucide-react';
 import './SOSToast.css';
 
 const TOAST_DURATION = 10000; // 10 seconds
+const SESSION_STORAGE_SOS_KEY = 'seen_sos_alert_ids';
+const SESSION_STORAGE_IDLE_KEY = 'seen_idle_alert_ids';
+const MAX_STORED_ALERT_IDS = 200;
+
+function getStoredSeenAlertIds(storageKey) {
+    try {
+        const rawData = sessionStorage.getItem(storageKey);
+        if (rawData) {
+            const parsedArray = JSON.parse(rawData);
+            if (Array.isArray(parsedArray)) {
+                return new Set(parsedArray);
+            }
+        }
+    } catch {
+        /* Ignore storage errors */
+    }
+    return new Set();
+}
+
+function saveStoredSeenAlertIds(storageKey, idSet) {
+    try {
+        const idArray = Array.from(idSet).slice(-MAX_STORED_ALERT_IDS);
+        sessionStorage.setItem(storageKey, JSON.stringify(idArray));
+    } catch {
+        /* Ignore storage errors */
+    }
+}
 
 function playEmergencySound(audioCtx, isIdle = false) {
     const frequencies = isIdle ? [523, 392] : [880, 660];
@@ -90,13 +117,17 @@ function SOSToastItem({ alert, tourist, kind, onDismiss }) {
     );
 }
 
+/** Renders real-time emergency toast notifications for monitoring roles with snapshot initialization and session persistence. */
 export default function SOSToast() {
     const { user, role } = useAuth();
     const { panicAlerts, safetyAlerts, touristsMap, fetchTouristByDtid } = useData();
     const canMonitorAlerts = Boolean(user && ['admin', 'police', 'forest'].includes(role));
     const [toasts, setToasts] = useState([]);
+    
     const seenSosRef = useRef(null);
     const seenIdleRef = useRef(null);
+    const isInitialSosRef = useRef(true);
+    const isInitialIdleRef = useRef(true);
     const audioCtxRef = useRef(null);
 
     const dismiss = useCallback((id) => {
@@ -125,9 +156,14 @@ export default function SOSToast() {
 
     // Real-time listener for panic alerts (SOS) using Firebase onSnapshot
     useEffect(() => {
-        if (!canMonitorAlerts || !panicAlerts) return;
+        if (!canMonitorAlerts) return;
         if (seenSosRef.current === null) {
-            seenSosRef.current = new Set((panicAlerts || []).map(a => a.id));
+            const storedSet = getStoredSeenAlertIds(SESSION_STORAGE_SOS_KEY);
+            if (panicAlerts && Array.isArray(panicAlerts)) {
+                panicAlerts.forEach(a => storedSet.add(a.id));
+            }
+            seenSosRef.current = storedSet;
+            saveStoredSeenAlertIds(SESSION_STORAGE_SOS_KEY, storedSet);
         }
 
         let q;
@@ -143,10 +179,30 @@ export default function SOSToast() {
         }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const newAlerts = list.filter(a => !seenSosRef.current.has(a.id));
+            if (isInitialSosRef.current) {
+                snapshot.docs.forEach(doc => {
+                    if (doc.id) seenSosRef.current.add(doc.id);
+                });
+                saveStoredSeenAlertIds(SESSION_STORAGE_SOS_KEY, seenSosRef.current);
+                isInitialSosRef.current = false;
+                return;
+            }
+
+            const newAlerts = [];
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+                    const docId = change.doc.id;
+                    if (data.resolved !== true && !seenSosRef.current.has(docId)) {
+                        seenSosRef.current.add(docId);
+                        newAlerts.push({ id: docId, ...data });
+                    }
+                }
+            });
+
             if (!newAlerts.length) return;
-            newAlerts.forEach(a => seenSosRef.current.add(a.id));
+
+            saveStoredSeenAlertIds(SESSION_STORAGE_SOS_KEY, seenSosRef.current);
             playSound(false);
             setToasts(prev => [
                 ...prev,
@@ -167,9 +223,14 @@ export default function SOSToast() {
 
     // Real-time listener for safety alerts (Idle) using Firebase onSnapshot
     useEffect(() => {
-        if (!canMonitorAlerts || !safetyAlerts) return;
+        if (!canMonitorAlerts) return;
         if (seenIdleRef.current === null) {
-            seenIdleRef.current = new Set((safetyAlerts || []).map(a => a.id));
+            const storedSet = getStoredSeenAlertIds(SESSION_STORAGE_IDLE_KEY);
+            if (safetyAlerts && Array.isArray(safetyAlerts)) {
+                safetyAlerts.forEach(a => storedSet.add(a.id));
+            }
+            seenIdleRef.current = storedSet;
+            saveStoredSeenAlertIds(SESSION_STORAGE_IDLE_KEY, storedSet);
         }
 
         let q;
@@ -185,10 +246,30 @@ export default function SOSToast() {
         }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const newAlerts = list.filter(a => !seenIdleRef.current.has(a.id));
+            if (isInitialIdleRef.current) {
+                snapshot.docs.forEach(doc => {
+                    if (doc.id) seenIdleRef.current.add(doc.id);
+                });
+                saveStoredSeenAlertIds(SESSION_STORAGE_IDLE_KEY, seenIdleRef.current);
+                isInitialIdleRef.current = false;
+                return;
+            }
+
+            const newAlerts = [];
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+                    const docId = change.doc.id;
+                    if (data.resolved !== true && !seenIdleRef.current.has(docId)) {
+                        seenIdleRef.current.add(docId);
+                        newAlerts.push({ id: docId, ...data });
+                    }
+                }
+            });
+
             if (!newAlerts.length) return;
-            newAlerts.forEach(a => seenIdleRef.current.add(a.id));
+
+            saveStoredSeenAlertIds(SESSION_STORAGE_IDLE_KEY, seenIdleRef.current);
             playSound(true);
             setToasts(prev => [
                 ...prev,
