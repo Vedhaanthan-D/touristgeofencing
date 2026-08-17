@@ -27,7 +27,7 @@ function Navigation() {
 
     const ALL_NAV_ITEMS = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'police', 'forest'] },
-        { path: '/', label: 'Tourist List', icon: Users, roles: ['admin', 'police', 'forest'] },
+        { path: '/tourists', label: 'Tourist List', icon: Users, roles: ['admin', 'police', 'forest'] },
         { path: '/register', label: 'Register', icon: UserPlus, roles: ['admin', 'immigration'] },
         { path: '/manage-zones', label: 'Manage Zones', icon: MapPin, roles: ['admin'] },
         { path: '/panic-alerts', label: 'Panic Alerts', icon: Siren, isAlert: true, roles: ['admin', 'police', 'forest'] },
@@ -60,7 +60,7 @@ function Navigation() {
                 <div className="nav-center-links nav-links">
                     {navItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = location.pathname === item.path;
+                        const isActive = location.pathname === item.path || (item.path === '/tourists' && location.pathname === '/tourist-list');
                         return (
                             <Link
                                 key={item.path}

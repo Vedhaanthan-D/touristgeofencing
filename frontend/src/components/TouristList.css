@@ -628,21 +628,41 @@
 }
 
 .btn-icon-view {
-  background: #F1F5F9;
-  border: none;
-  color: #475569;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  color: #1D4ED8;
+  border: 1px solid #93C5FD;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.825rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-icon-view svg {
+  color: #1D4ED8;
+  stroke: #1D4ED8;
+  stroke-width: 2.2;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
 .btn-icon-view:hover {
-  background: #2563EB;
-  color: white;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  border-color: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-icon-view:hover svg {
+  color: #FFFFFF;
+  stroke: #FFFFFF;
+  transform: scale(1.1);
 }
 
 /* Empty State Card */

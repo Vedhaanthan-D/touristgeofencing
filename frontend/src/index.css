@@ -463,3 +463,28 @@ tbody tr:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-light);
 }
+
+/* Centered Full Page / Section Loading Container */
+.loading-container,
+.db-loading-container,
+.session-loading-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-height: calc(80vh - 60px) !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 3rem 1.5rem !important;
+}
+
+.db-page-wrapper:has(.db-loading-container),
+.tl-page-wrapper:has(.loading-container) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 85px) !important;
+  width: 100% !important;
+}
+

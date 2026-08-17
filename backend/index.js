@@ -164,6 +164,12 @@ app.post('/api/register', authenticateToken, requireRole('admin', 'immigration')
                     dtid
                 });
                 console.log('🔄 Updated Firebase Auth user with DTID password and tourist claims');
+
+                // Store Firebase Auth UID on tourist document for Firestore security rule validation
+                await db.collection('tourists').doc(dtid).update({
+                    uid: userRecord.uid
+                });
+                console.log('🆔 Linked Firebase Auth UID to Firestore tourist record:', userRecord.uid);
             }
         } catch (authErr) {
             console.error('⚠️  Firebase Auth registration sync error:', {
@@ -208,7 +214,13 @@ app.get('/api/tourists', authenticateToken, requireRole('admin', 'police', 'fore
         const data = await Tourist.find({ limit: limitParam, startAfter });
 
         // Calculate status on the fly without writing to Firestore during GET reads
-        const updatedData = data.map(tourist => computeTouristActiveStatus(tourist));
+        const updatedData = data.map(tourist => {
+            const updated = computeTouristActiveStatus(tourist);
+            if (updated.gpsStatus || updated.lastKnownLocation) {
+                console.log(`[TOURIST API] DTID: ${updated.dtid} | gpsStatus: ${updated.gpsStatus} | lastKnownLocation:`, updated.lastKnownLocation);
+            }
+            return updated;
+        });
 
         res.json(updatedData);
     } catch (err) {
@@ -226,6 +238,11 @@ app.get('/api/tourists/:dtid', authenticateToken, requireRole('admin', 'police',
         const tourist = await Tourist.findByDtid(dtid);
         if (!tourist) return res.status(404).json({ error: 'Tourist not found' });
         const updated = computeTouristActiveStatus(tourist);
+        console.log('[GPS API DEBUG]');
+        console.log('  DTID:', updated.dtid);
+        console.log('  gpsStatus:', updated.gpsStatus);
+        console.log('  lastKnownLocation:', updated.lastKnownLocation);
+        console.log('  lastLocationStatusUpdate:', updated.lastLocationStatusUpdate);
         return res.json(updated);
     } catch (err) {
         console.error('Error fetching tourist by dtid:', err);
@@ -352,6 +369,14 @@ app.post('/api/is-active', async (req, res) => {
                     role: 'tourist',
                     dtid: updated.dtid
                 });
+
+                // Self-heal: Backfill Firebase Auth UID to existing tourist record if missing
+                if (!updated.uid || updated.uid !== userRecord.uid) {
+                    await db.collection('tourists').doc(updated.dtid).update({
+                        uid: userRecord.uid
+                    });
+                    console.log('🩹 Backfilled missing Auth UID to existing tourist record:', userRecord.uid);
+                }
             }
         } catch (authError) {
             console.error('Firebase Auth synchronization failed:', {

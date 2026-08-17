@@ -3,9 +3,10 @@ import {
     Search, AlertTriangle, RefreshCw, Users, SearchX, 
     ShieldCheck, Clock, MapPin, Phone, Mail, Calendar, 
     Eye, X, Copy, Check, Filter, UserCheck, LayoutGrid, Table as TableIcon,
-    CalendarDays, User, PhoneCall
+    CalendarDays, User, PhoneCall, Compass
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { getTouristTelemetry } from '../utils/telemetryHelper';
 import './Dashboard.css';
 import './TouristList.css';
 
@@ -13,7 +14,8 @@ function TouristList() {
     const { 
         tourists, 
         loadingTourists: loading, 
-        fetchTourists: refreshGlobalTourists 
+        fetchTourists: refreshGlobalTourists,
+        fetchTouristByDtid 
     } = useData();
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -22,6 +24,98 @@ function TouristList() {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
     const [selectedTourist, setSelectedTourist] = useState(null);
     const [copiedDtid, setCopiedDtid] = useState(null);
+
+    // Periodic UI tick to re-evaluate telemetry freshness age every 30 seconds
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const timer = setInterval(() => setTick(t => t + 1), 30000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Auto-fetch fresh single-tourist telemetry from server on modal opening
+    useEffect(() => {
+        if (!selectedTourist?.dtid) return;
+        let isMounted = true;
+        fetchTouristByDtid(selectedTourist.dtid, true).then(fresh => {
+            if (isMounted && fresh) {
+                setSelectedTourist(prev => {
+                    if (!prev) return fresh;
+                    const prevD = String(prev.dtid || '').toLowerCase().trim();
+                    const freshD = String(fresh.dtid || '').toLowerCase().trim();
+                    if (!prevD || !freshD || prevD === freshD) {
+                        return { ...prev, ...fresh };
+                    }
+                    return prev;
+                });
+            }
+        });
+        return () => { isMounted = false; };
+    }, [selectedTourist?.dtid, fetchTouristByDtid]);
+
+    const activeSelectedTourist = useMemo(() => {
+        if (!selectedTourist) return null;
+        const sDtid = String(selectedTourist.dtid || '').toLowerCase().trim();
+        const fromList = tourists.find(t => t.dtid && String(t.dtid).toLowerCase().trim() === sDtid);
+        if (!fromList) return selectedTourist;
+        return { ...fromList, ...selectedTourist };
+    }, [selectedTourist, tourists]);
+
+    const extractCoordinates = (tourist) => {
+        if (!tourist) return null;
+        let lat = null, lng = null, accuracy = null, timestamp = null;
+        if (tourist.lastKnownLocation && typeof tourist.lastKnownLocation === 'object') {
+            lat = tourist.lastKnownLocation.latitude ?? tourist.lastKnownLocation.lat;
+            lng = tourist.lastKnownLocation.longitude ?? tourist.lastKnownLocation.lng;
+            accuracy = tourist.lastKnownLocation.accuracy;
+            timestamp = tourist.lastKnownLocation.timestamp;
+        }
+        if (lat == null || lng == null) {
+            lat = tourist.latitude ?? tourist.lat ?? tourist.lastKnownLatitude;
+            lng = tourist.longitude ?? tourist.lng ?? tourist.lastKnownLongitude;
+        }
+        if (lat != null && lng != null && !isNaN(Number(lat)) && !isNaN(Number(lng))) {
+            return {
+                latitude: Number(lat),
+                longitude: Number(lng),
+                accuracy: accuracy != null && !isNaN(Number(accuracy)) ? Number(accuracy) : null,
+                timestamp: timestamp || tourist.lastLocationStatusUpdate || tourist.updatedAt
+            };
+        }
+        return null;
+    };
+
+    const extractGpsStatus = (tourist) => {
+        if (!tourist) return null;
+        const raw = tourist.gpsStatus || tourist.status || tourist.locationStatus;
+        if (typeof raw === 'string') {
+            const s = raw.trim().toLowerCase();
+            if (s === 'disabled' || s === 'unavailable' || s === 'offline') return 'disabled';
+            if (s === 'active' || s === 'online' || s === 'tracking') return 'active';
+            return s;
+        }
+        return raw || null;
+    };
+
+    const formatTelemetryTimestamp = (timestamp, fallbackUpdate) => {
+        const raw = timestamp || fallbackUpdate;
+        if (!raw) return null;
+        try {
+            let dateObj;
+            if (typeof raw === 'string') dateObj = new Date(raw);
+            else if (typeof raw === 'number') dateObj = new Date(raw);
+            else if (raw._seconds) dateObj = new Date(raw._seconds * 1000);
+            else if (raw.seconds) dateObj = new Date(raw.seconds * 1000);
+            else if (raw.toDate && typeof raw.toDate === 'function') dateObj = raw.toDate();
+            else dateObj = new Date(raw);
+            if (isNaN(dateObj.getTime())) return null;
+            return dateObj.toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+        } catch (e) {
+            return null;
+        }
+    };
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
@@ -119,8 +213,8 @@ function TouristList() {
 
     if (loading && tourists.length === 0) {
         return (
-            <div className="tl-page-wrapper">
-                <div className="loading-container">
+            <div className="tl-page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 85px)', width: '100%' }}>
+                <div className="loading-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', textAlign: 'center' }}>
                     <div className="loading-spinner"></div>
                     <h3>Loading Tourist Directory...</h3>
                     <p>Retrieving registered traveler profiles...</p>
@@ -379,8 +473,13 @@ function TouristList() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button className="btn-icon-view" title="View Full Profile">
-                                                        <Eye size={16} />
+                                                    <button 
+                                                        className="btn-icon-view" 
+                                                        onClick={() => setSelectedTourist(tourist)}
+                                                        title="View Full Profile"
+                                                    >
+                                                        <Eye size={15} />
+                                                        <span className="btn-action-text">View</span>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -520,6 +619,57 @@ function TouristList() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* GPS Telemetry & Last Known Location */}
+                            {(() => {
+                                const telemetry = getTouristTelemetry(activeSelectedTourist);
+                                return (
+                                    <div className="dossier-card">
+                                        <div className="dossier-card-title">
+                                            <Compass size={16} className="text-primary" />
+                                            <h3>GPS Telemetry & Last Known Location</h3>
+                                        </div>
+                                        <div className="dossier-grid-rows">
+                                            <div className="dossier-field-box">
+                                                <span className="field-name">GPS Status</span>
+                                                <span className={`field-value ${telemetry.statusBadgeClass}`} style={{ fontWeight: 600 }}>
+                                                    {telemetry.statusIcon} {telemetry.statusLabel}
+                                                </span>
+                                            </div>
+                                            <div className="dossier-field-box span-2">
+                                                <span className="field-name">Last Known Coordinates (Lat, Lng)</span>
+                                                <span className="field-value font-highlight">
+                                                    {telemetry.coordinates
+                                                        ? `${telemetry.coordinates.latitude.toFixed(6)}, ${telemetry.coordinates.longitude.toFixed(6)}`
+                                                        : 'No Last Known Location recorded'}
+                                                </span>
+                                            </div>
+                                            {telemetry.accuracy != null && (
+                                                <div className="dossier-field-box">
+                                                    <span className="field-name">GPS Accuracy</span>
+                                                    <span className="field-value">
+                                                        ±{telemetry.accuracy.toFixed(1)} m
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {telemetry.formattedTimestamp && (
+                                                <div className="dossier-field-box span-2">
+                                                    <span className="field-name">Last Updated</span>
+                                                    <span className="field-value">
+                                                        {telemetry.formattedTimestamp} {telemetry.isStale ? '(Stale > 5 mins)' : ''}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {telemetry.coordinates && (
+                                            <div style={{ marginTop: '12px', padding: '8px 12px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                                <AlertTriangle size={14} />
+                                                <span>⚠️ Last Known Location — not a live tracking trail</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Family & Group Members */}
                             {selectedTourist.familyMembers && selectedTourist.familyMembers.length > 0 && (

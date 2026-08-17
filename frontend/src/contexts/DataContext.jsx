@@ -39,7 +39,7 @@ export const DataProvider = ({ children }) => {
             list.forEach(t => {
                 if (t.dtid) map[t.dtid] = t;
             });
-            setTouristsMap(prev => ({ ...map, ...prev }));
+            setTouristsMap(prev => ({ ...prev, ...map }));
         } catch (err) {
             console.error('Error fetching global tourists:', err);
         } finally {
@@ -75,19 +75,24 @@ export const DataProvider = ({ children }) => {
         }
     }, []);
 
-    // Fetch single tourist by DTID if missing from map
-    const fetchTouristByDtid = useCallback(async (dtid) => {
-        if (!dtid || touristsMap[dtid]) return touristsMap[dtid];
+    // Fetch single tourist by DTID (with optional forceRefresh to bypass cache)
+    const fetchTouristByDtid = useCallback(async (dtid, forceRefresh = false) => {
+        if (!dtid) return null;
+        if (!forceRefresh && touristsMap[dtid] && (touristsMap[dtid].gpsStatus || touristsMap[dtid].lastKnownLocation)) {
+            return touristsMap[dtid];
+        }
         try {
             const response = await apiClient.get(`/api/tourists/${dtid}`);
             if (response.data) {
-                setTouristsMap(prev => ({ ...prev, [dtid]: response.data }));
+                const normDtid = String(dtid).trim();
+                setTouristsMap(prev => ({ ...prev, [dtid]: response.data, [normDtid]: response.data }));
+                setTourists(prev => prev.map(t => (t.dtid && String(t.dtid).toLowerCase().trim() === normDtid.toLowerCase()) ? { ...t, ...response.data } : t));
                 return response.data;
             }
         } catch (err) {
             console.error(`Error fetching tourist ${dtid}:`, err);
         }
-        return null;
+        return touristsMap[dtid] || null;
     }, [touristsMap]);
 
     // Trigger refresh across all components
