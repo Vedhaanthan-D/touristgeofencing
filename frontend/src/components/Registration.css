@@ -954,16 +954,20 @@ label {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm 15mm;
+    margin: 0; /* Strips browser default header (date, time, title) and footer (localhost URL) */
   }
 
-  /* Reset global backgrounds for printing */
+  /* Reset global backgrounds for printing & force single-page container */
   html, body {
     background: #FFFFFF !important;
     color: #000000 !important;
     font-family: Arial, Helvetica, sans-serif !important;
-    padding: 0 !important;
+    padding: 8mm 10mm !important;
     margin: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -990,6 +994,7 @@ label {
     border: none !important;
     box-shadow: none !important;
     max-width: 100% !important;
+    max-height: 100% !important;
   }
 
   /* Display ONLY the dedicated Print Pass Document */
@@ -1000,13 +1005,16 @@ label {
   .print-pass-document {
     width: 100% !important;
     max-width: 100% !important;
+    max-height: 100% !important;
     background: #FFFFFF !important;
     border: 2px solid #0F172A !important;
     border-radius: 12px !important;
-    padding: 1.5rem 1.75rem !important;
+    padding: 1.25rem 1.5rem !important;
     box-sizing: border-box !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   /* Print Document Header */
@@ -1014,30 +1022,30 @@ label {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding-bottom: 1rem !important;
+    padding-bottom: 0.6rem !important;
   }
 
   .print-header-brand {
     display: flex !important;
     align-items: center !important;
-    gap: 0.85rem !important;
+    gap: 0.75rem !important;
   }
 
   .print-emblem {
-    font-size: 2.2rem !important;
+    font-size: 2rem !important;
     line-height: 1 !important;
   }
 
   .print-header-brand h1 {
-    font-size: 1.2rem !important;
+    font-size: 1.15rem !important;
     font-weight: 800 !important;
     color: #0F172A !important;
-    margin: 0 0 0.2rem 0 !important;
+    margin: 0 0 0.15rem 0 !important;
     letter-spacing: 0.02em !important;
   }
 
   .print-header-brand p {
-    font-size: 0.7rem !important;
+    font-size: 0.65rem !important;
     font-weight: 700 !important;
     color: #475569 !important;
     margin: 0 !important;
@@ -1048,37 +1056,37 @@ label {
     text-align: right !important;
     background: #DCFCE7 !important;
     border: 1px solid #166534 !important;
-    padding: 0.4rem 0.85rem !important;
+    padding: 0.35rem 0.75rem !important;
     border-radius: 8px !important;
   }
 
   .print-header-badge span {
     display: block !important;
-    font-size: 0.6rem !important;
+    font-size: 0.58rem !important;
     font-weight: 800 !important;
     color: #166534 !important;
     letter-spacing: 0.05em !important;
   }
 
   .print-header-badge strong {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
     font-weight: 800 !important;
     color: #15803D !important;
   }
 
   .print-divider-line {
-    height: 3px !important;
+    height: 2px !important;
     background: linear-gradient(90deg, #0F172A, #0284C7, #0F172A) !important;
-    margin-bottom: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
     border-radius: 99px !important;
   }
 
   /* Body Layout */
   .print-body-layout {
     display: flex !important;
-    gap: 1.5rem !important;
+    gap: 1rem !important;
     align-items: flex-start !important;
-    margin-bottom: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
   }
 
   /* QR Section */
@@ -1132,14 +1140,14 @@ label {
   .print-dtid-box {
     background: #0F172A !important;
     color: #FFFFFF !important;
-    padding: 0.6rem 1rem !important;
+    padding: 0.45rem 0.85rem !important;
     border-radius: 8px !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.65rem !important;
   }
 
   .print-field-label {
     display: block !important;
-    font-size: 0.62rem !important;
+    font-size: 0.58rem !important;
     font-weight: 700 !important;
     color: #38BDF8 !important;
     letter-spacing: 0.08em !important;
@@ -1147,7 +1155,7 @@ label {
 
   .print-dtid-value {
     font-family: 'Courier New', monospace !important;
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
     font-weight: 800 !important;
     color: #FFFFFF !important;
     word-break: break-all !important;
@@ -1157,11 +1165,11 @@ label {
   .print-data-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 0.82rem !important;
+    font-size: 0.8rem !important;
   }
 
   .print-data-table td {
-    padding: 0.45rem 0.6rem !important;
+    padding: 0.35rem 0.5rem !important;
     border-bottom: 1px solid #E2E8F0 !important;
     vertical-align: middle !important;
   }
@@ -1180,7 +1188,7 @@ label {
 
   .tbl-val.bold {
     font-weight: 800 !important;
-    font-size: 0.9rem !important;
+    font-size: 0.85rem !important;
   }
 
   .tbl-val.highlight {
@@ -1190,34 +1198,34 @@ label {
 
   /* Section Blocks */
   .print-section-block {
-    margin-top: 1rem !important;
-    padding-top: 0.75rem !important;
+    margin-top: 0.65rem !important;
+    padding-top: 0.5rem !important;
     border-top: 1px solid #CBD5E1 !important;
   }
 
   .print-section-block h3 {
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
     font-weight: 800 !important;
     color: #0F172A !important;
-    margin: 0 0 0.5rem 0 !important;
+    margin: 0 0 0.4rem 0 !important;
     letter-spacing: 0.05em !important;
   }
 
   .print-companions-grid, .print-contacts-grid {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 0.5rem !important;
+    gap: 0.4rem !important;
   }
 
   .print-companion-chip, .print-contact-chip {
     background: #F1F5F9 !important;
     border: 1px solid #CBD5E1 !important;
-    padding: 0.35rem 0.65rem !important;
+    padding: 0.25rem 0.55rem !important;
     border-radius: 6px !important;
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
     display: flex !important;
     align-items: center !important;
-    gap: 0.5rem !important;
+    gap: 0.4rem !important;
   }
 
   .print-companion-chip strong, .print-contact-chip strong {
@@ -1230,10 +1238,10 @@ label {
 
   /* Footer Disclaimer */
   .print-footer {
-    margin-top: 1.25rem !important;
-    padding-top: 0.75rem !important;
+    margin-top: 0.75rem !important;
+    padding-top: 0.5rem !important;
     border-top: 2px dashed #0F172A !important;
-    font-size: 0.68rem !important;
+    font-size: 0.65rem !important;
   }
 
   .print-footer-info {
@@ -1241,12 +1249,12 @@ label {
     justify-content: space-between !important;
     font-weight: 700 !important;
     color: #334155 !important;
-    margin-bottom: 0.3rem !important;
+    margin-bottom: 0.25rem !important;
   }
 
   .print-disclaimer {
     color: #64748B !important;
     margin: 0 !important;
-    line-height: 1.4 !important;
+    line-height: 1.35 !important;
   }
 }

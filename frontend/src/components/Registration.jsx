@@ -24,7 +24,6 @@ function Registration() {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(null);
     const [error, setError] = useState(null);
-    const [showScannerModal, setShowScannerModal] = useState(false);
     const [copiedDtid, setCopiedDtid] = useState(false);
 
     const handleInputChange = (e) => {
@@ -247,22 +246,12 @@ function Registration() {
         setTimeout(() => setCopiedDtid(false), 2500);
     };
 
-    const handleSimulateScan = () => {
-        setShowScannerModal(true);
-        setTimeout(() => {
-            const sampleAadhaar = String(Math.floor(100000000000 + Math.random() * 900000000000));
-            setFormData(prev => ({ ...prev, aadhaar: sampleAadhaar }));
-            setShowScannerModal(false);
-            if (error) setError(null);
-        }, 2200);
-    };
-
     const handlePrintPass = () => {
+        const originalTitle = document.title;
+        document.title = '';
         window.print();
+        document.title = originalTitle;
     };
-
-    // QR Code URL with high resolution & error correction level
-    const qrCodeUrl = success ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&margin=2&data=${encodeURIComponent(success.dtid)}` : '';
 
     return (
         <div className="reg-page-wrapper">
@@ -307,15 +296,6 @@ function Registration() {
                             </div>
                             
                             <div className="dtid-pass-body">
-                                <div className="dtid-qr-box">
-                                    <img 
-                                        src={qrCodeUrl} 
-                                        alt="DTID QR Code"
-                                        className="original-qr-img"
-                                    />
-                                    <span>SCAN TO VERIFY</span>
-                                </div>
-
                                 <div className="dtid-info-grid">
                                     <div className="dtid-field-block col-span-2">
                                         <label>DIGITAL TOURIST ID (DTID)</label>
@@ -392,14 +372,6 @@ function Registration() {
                             <div className="print-divider-line"></div>
 
                             <div className="print-body-layout">
-                                <div className="print-qr-section">
-                                    <div className="print-qr-frame">
-                                        <img src={qrCodeUrl} alt="Official DTID QR Code" className="print-qr-img" />
-                                    </div>
-                                    <span className="print-qr-label">OFFICIAL VERIFIED QR CODE</span>
-                                    <span className="print-qr-sublabel">Scan to verify authenticity & status</span>
-                                </div>
-
                                 <div className="print-details-section">
                                     <div className="print-dtid-box">
                                         <span className="print-field-label">DIGITAL TOURIST ID (DTID)</span>
@@ -559,18 +531,7 @@ function Registration() {
                                     </div>
 
                                     <div className="input-group">
-                                        <div className="label-with-action">
-                                            <label htmlFor="aadhaar">Aadhaar / Passport Number *</label>
-                                            <button 
-                                                type="button" 
-                                                onClick={handleSimulateScan}
-                                                className="btn-scan-qr"
-                                                title="Demo mode: fills sample ID data"
-                                            >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                                                Scan ID / QR Code (Demo Stub)
-                                            </button>
-                                        </div>
+                                        <label htmlFor="aadhaar">Aadhaar / Passport Number *</label>
                                         <div className="input-icon-wrapper">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             <input
@@ -952,26 +913,6 @@ function Registration() {
                 )}
             </div>
 
-            {/* QR Scanner Simulation Modal */}
-            {showScannerModal && (
-                <div className="scanner-modal-backdrop no-print">
-                    <div className="scanner-modal-card">
-                        <div className="scanner-header">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                            <h3>Scanning Aadhaar / Passport QR</h3>
-                        </div>
-                        <div className="scanner-viewport">
-                            <div className="scan-grid"></div>
-                            <div className="scan-line"></div>
-                            <div className="scanner-frame-corner top-left"></div>
-                            <div className="scanner-frame-corner top-right"></div>
-                            <div className="scanner-frame-corner bottom-left"></div>
-                            <div className="scanner-frame-corner bottom-right"></div>
-                        </div>
-                        <p className="scanner-status">Hold document QR code inside frame...</p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
