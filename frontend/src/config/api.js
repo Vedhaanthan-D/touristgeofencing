@@ -4,11 +4,18 @@ import { auth } from './firebase';
 /** Resolves the backend API base URL based on environment configuration or window location. */
 export const getApiBaseUrl = () => {
     const configuredUrl = import.meta.env.VITE_API_URL;
+    const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+    if (isProduction) {
+        if (configuredUrl && configuredUrl.trim() && !configuredUrl.includes('localhost') && !configuredUrl.includes('127.0.0.1')) {
+            return configuredUrl.trim().replace(/\/+$/, '');
+        }
+        // Fall back to live Render hosted backend in production
+        return 'https://touristgeofencing-s787.onrender.com';
+    }
+
     if (configuredUrl && configuredUrl.trim()) {
         return configuredUrl.trim().replace(/\/+$/, '');
-    }
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return window.location.origin;
     }
     return 'http://localhost:5000';
 };
