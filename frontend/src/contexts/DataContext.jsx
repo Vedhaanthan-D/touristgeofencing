@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
 import { apiClient } from '../config/api';
+import { db as firestoreDb } from '../config/firebase';
 import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
@@ -26,12 +28,24 @@ export const DataProvider = ({ children }) => {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isNewRegistration, setIsNewRegistration] = useState(false);
 
-    // Fetch all tourists and build a lookup map by DTID
+    // Fetch all tourists and build a lookup map by DTID (with Firestore direct fallback)
     const fetchTourists = useCallback(async () => {
         try {
             setLoadingTourists(true);
-            const response = await apiClient.get('/api/tourists');
-            const list = Array.isArray(response.data) ? response.data : [];
+            let list = [];
+            try {
+                const response = await apiClient.get('/api/tourists');
+                list = Array.isArray(response.data) ? response.data : [];
+            } catch (apiErr) {
+                console.warn('[DataContext] Backend API unavailable, querying Firestore directly:', apiErr?.message);
+                const querySnapshot = await getDocs(collection(firestoreDb, 'tourists'));
+                const currentTime = Math.floor(Date.now() / 1000);
+                list = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const isActive = data.isActive !== false && (!data.returnDate || currentTime <= data.returnDate);
+                    return { dtid: doc.id, ...data, isActive };
+                });
+            }
             setTourists(list);
 
             // Create quick lookup map by DTID
@@ -51,8 +65,15 @@ export const DataProvider = ({ children }) => {
     const fetchPanicAlerts = useCallback(async () => {
         try {
             setLoadingPanic(true);
-            const response = await apiClient.get('/api/panic-alerts');
-            const list = Array.isArray(response.data) ? response.data : [];
+            let list = [];
+            try {
+                const response = await apiClient.get('/api/panic-alerts');
+                list = Array.isArray(response.data) ? response.data : [];
+            } catch (apiErr) {
+                console.warn('[DataContext] Backend panic-alerts API unavailable, querying Firestore directly:', apiErr?.message);
+                const querySnapshot = await getDocs(collection(firestoreDb, 'panic_alert_emergencies'));
+                list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
             setPanicAlerts(list);
         } catch (err) {
             console.error('Error fetching panic alerts:', err);
@@ -65,8 +86,15 @@ export const DataProvider = ({ children }) => {
     const fetchSafetyAlerts = useCallback(async () => {
         try {
             setLoadingSafety(true);
-            const response = await apiClient.get('/api/safety-alerts');
-            const list = Array.isArray(response.data) ? response.data : [];
+            let list = [];
+            try {
+                const response = await apiClient.get('/api/safety-alerts');
+                list = Array.isArray(response.data) ? response.data : [];
+            } catch (apiErr) {
+                console.warn('[DataContext] Backend safety-alerts API unavailable, querying Firestore directly:', apiErr?.message);
+                const querySnapshot = await getDocs(collection(firestoreDb, 'safety_alerts'));
+                list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
             setSafetyAlerts(list);
         } catch (err) {
             console.error('Error fetching safety alerts:', err);
@@ -111,9 +139,9 @@ export const DataProvider = ({ children }) => {
         }, 5000);
     }, [triggerRefresh]);
 
-    // Load data when user is authenticated with a monitoring role
+    // Load data when user is authenticated
     useEffect(() => {
-        if (!user || !['admin', 'police', 'forest'].includes(role)) return;
+        if (!user) return;
 
         fetchTourists();
         fetchPanicAlerts();

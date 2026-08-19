@@ -10,7 +10,7 @@ export const getApiBaseUrl = () => {
     if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         return window.location.origin;
     }
-    return 'http://localhost:3000';
+    return 'http://localhost:5000';
 };
 
 /** Central API base URL string for cross-environment communication. */

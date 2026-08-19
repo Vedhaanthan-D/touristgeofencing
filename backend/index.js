@@ -13,15 +13,16 @@ const validateRegistration = require('./middleware/validateRegistration');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(bodyParser.json());
 
 // CORS Configuration allowing both Render hosted backend & localhost origins
 const defaultAllowedOrigins = [
     'https://touristgeofencing-s787.onrender.com',
     'http://localhost:5173',
+    'http://localhost:5000',
     'http://localhost:3000',
     'http://localhost:5174',
     'http://127.0.0.1:5173',
+    'http://10.0.2.2:5000',
     'http://10.0.2.2:3000'
 ];
 
@@ -33,16 +34,32 @@ if (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.trim()) {
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl, Postman) or matched allowed origins
         if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             callback(null, true);
         } else {
-            callback(null, true); // Permissive fallback to allow mobile client requests
+            callback(null, true);
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    optionsSuccessStatus: 200
 };
+
+// Apply CORS as the very first middleware to handle all requests and preflights cleanly
 app.use(cors(corsOptions));
+
+// Live request logger middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl} -> Status ${res.statusCode} (${duration}ms)`);
+    });
+    next();
+});
+
+app.use(bodyParser.json());
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });
@@ -201,11 +218,59 @@ app.post('/api/register', authenticateToken, requireRole('admin', 'immigration')
     }
 });
 
+const GPS_STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes staleness threshold for GPS telemetry
+
+const getMillisFromTimestamp = (timestampVal) => {
+    if (!timestampVal) return null;
+    if (typeof timestampVal.toMillis === 'function') {
+        return timestampVal.toMillis();
+    }
+    if (typeof timestampVal.toDate === 'function') {
+        return timestampVal.toDate().getTime();
+    }
+    if (timestampVal instanceof Date) {
+        return timestampVal.getTime();
+    }
+    if (typeof timestampVal === 'number') {
+        return timestampVal;
+    }
+    if (typeof timestampVal === 'object') {
+        if (typeof timestampVal._seconds === 'number') {
+            return timestampVal._seconds * 1000 + Math.floor((timestampVal._nanoseconds || 0) / 1000000);
+        }
+        if (typeof timestampVal.seconds === 'number') {
+            return timestampVal.seconds * 1000 + Math.floor((timestampVal.nanoseconds || 0) / 1000000);
+        }
+    }
+    if (typeof timestampVal === 'string') {
+        const parsed = Date.parse(timestampVal);
+        if (!isNaN(parsed)) return parsed;
+    }
+    return null;
+};
+
 const computeTouristActiveStatus = (tourist) => {
     const currentTime = Math.floor(Date.now() / 1000);
     const isActive = tourist.isActive && currentTime <= tourist.returnDate;
-    return { ...tourist, isActive };
+
+    // Server-side derived gpsStatus calculation based on lastLocationStatusUpdate freshness
+    const lastUpdateMs = getMillisFromTimestamp(tourist.lastLocationStatusUpdate);
+    let gpsStatus = tourist.gpsStatus;
+
+    if (!lastUpdateMs) {
+        // Missing timestamp: telemetry was never reported
+        gpsStatus = 'inactive';
+    } else if (Date.now() - lastUpdateMs > GPS_STALE_THRESHOLD_MS) {
+        // Telemetry older than 5 minutes: override client status (e.g. app task swiped/killed)
+        gpsStatus = 'inactive';
+    } else {
+        // Fresh telemetry within threshold: keep stored status (defaulting to 'active' if truthy)
+        gpsStatus = tourist.gpsStatus || 'active';
+    }
+
+    return { ...tourist, isActive, gpsStatus };
 };
+
 
 app.get('/api/tourists', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
     try {
@@ -364,11 +429,14 @@ app.post('/api/is-active', async (req, res) => {
 
             if (userRecord) {
                 const existingClaims = userRecord.customClaims || {};
-                await admin.auth().setCustomUserClaims(userRecord.uid, {
-                    ...existingClaims,
-                    role: 'tourist',
-                    dtid: updated.dtid
-                });
+                if (existingClaims.dtid !== cleanDtid || existingClaims.role !== 'tourist') {
+                    await admin.auth().setCustomUserClaims(userRecord.uid, {
+                        ...existingClaims,
+                        role: 'tourist',
+                        dtid: updated.dtid
+                    });
+                    console.log('🩹 Updated custom user claims for:', userRecord.uid);
+                }
 
                 // Self-heal: Backfill Firebase Auth UID to existing tourist record if missing
                 if (!updated.uid || updated.uid !== userRecord.uid) {

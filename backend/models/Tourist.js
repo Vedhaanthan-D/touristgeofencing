@@ -77,6 +77,16 @@ class Tourist {
                 const data = doc.data();
                 tourists.push(new Tourist({ ...data, dtid: data.dtid || doc.id }));
             });
+
+            // Fallback: If orderBy('createdAt') yields 0 results (e.g. documents missing createdAt field), fetch all documents without ordering
+            if (tourists.length === 0) {
+                console.log('[Tourist.find] orderBy returned 0 docs. Executing un-ordered fallback query.');
+                const fallbackSnap = await db.collection('tourists').limit(Number(limit) || 50).get();
+                fallbackSnap.forEach(doc => {
+                    const data = doc.data();
+                    tourists.push(new Tourist({ ...data, dtid: data.dtid || doc.id }));
+                });
+            }
             
             return tourists;
         } catch (error) {
