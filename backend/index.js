@@ -359,6 +359,96 @@ app.get('/api/safety-alerts', authenticateToken, requireRole('admin', 'police', 
     }
 });
 
+// Confirm a safety alert as a MISSING person case and auto-file a persistent E-FIR record.
+// An officer reviews a pending idle alert and confirms it; this marks the alert 'missing'
+// and creates an official E-FIR document in the `efirs` collection linked back to the alert.
+app.post('/api/safety-alerts/:id/report-missing', authenticateToken, requireRole('admin', 'police', 'forest'), async (req, res) => {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Safety alert id is required' });
+
+    try {
+        const alertRef = db.collection('safety_alerts').doc(id);
+        const alertSnap = await alertRef.get();
+        if (!alertSnap.exists) return res.status(404).json({ error: 'Safety alert not found' });
+
+        const alert = alertSnap.data();
+        const filedBy = req.user.email || req.user.uid || 'unknown';
+
+        // Idempotent: if already confirmed missing with an E-FIR on file, return the existing record
+        if (alert.status === 'missing' && alert.efirId) {
+            const existingEfir = await db.collection('efirs').doc(alert.efirId).get();
+            return res.json({
+                alert: { id, ...alert },
+                efir: existingEfir.exists ? { id: existingEfir.id, ...existingEfir.data() } : null,
+                alreadyFiled: true
+            });
+        }
+
+        // Snapshot the tourist details for the permanent E-FIR record
+        let tourist = null;
+        if (alert.dtid) {
+            try { tourist = await Tourist.findByDtid(alert.dtid); } catch { tourist = null; }
+        }
+
+        const year = new Date().getFullYear();
+        const firNo = `MIS/${String(id).slice(-8).toUpperCase()}/${year}`;
+
+        const efirDoc = {
+            firNo,
+            alertId: id,
+            dtid: alert.dtid || null,
+            userId: alert.userId || null,
+            status: 'filed',
+            policeStation: 'Cyber Crime/Tourist Missing Cell',
+            tourist: tourist ? {
+                dtid: tourist.dtid || null,
+                fullName: tourist.fullName || null,
+                age: tourist.age ?? null,
+                gender: tourist.gender || null,
+                nationality: tourist.nationality || 'Indian',
+                phone: tourist.mobileNumber || tourist.phone || null,
+                email: tourist.email || null,
+                emergencyContacts: tourist.emergencyContacts || null,
+                familyMembers: tourist.familyMembers || [],
+                tripDetails: tourist.tripDetails || null,
+                issuedAt: tourist.issuedAt ?? null,
+                returnDate: tourist.returnDate ?? null
+            } : null,
+            incident: {
+                location: alert.location || null,
+                idleDuration: alert.idleDuration ?? null,
+                idleStartTimestamp: alert.idleStartTimestamp || null,
+                alertCreatedAt: alert.createdAt || null
+            },
+            filedBy,
+            filedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        const efirRef = await db.collection('efirs').add(efirDoc);
+
+        await alertRef.update({
+            status: 'missing',
+            reportedMissingAt: admin.firestore.FieldValue.serverTimestamp(),
+            reportedBy: filedBy,
+            efirId: efirRef.id,
+            firNo,
+            efirStatus: 'filed'
+        });
+
+        const updatedSnap = await alertRef.get();
+        console.log(`[E-FIR] Filed ${firNo} for DTID ${alert.dtid || 'N/A'} by ${filedBy} (alert ${id})`);
+
+        return res.json({
+            alert: { id, ...updatedSnap.data() },
+            efir: { id: efirRef.id, ...efirDoc },
+            alreadyFiled: false
+        });
+    } catch (err) {
+        console.error('Error reporting missing / filing E-FIR:', err);
+        return res.status(500).json({ error: 'Failed to report missing and file E-FIR' });
+    }
+});
+
 // Set user role (Admin only endpoint)
 app.post('/api/admin/set-role', authenticateToken, requireRole('admin'), async (req, res) => {
     const { email, role } = req.body || {};

@@ -123,6 +123,18 @@ export const DataProvider = ({ children }) => {
         return touristsMap[dtid] || null;
     }, [touristsMap]);
 
+    // Confirm an idle safety alert as a MISSING case and auto-file a persistent E-FIR record.
+    // Officer-initiated manual review action; updates the alert in place with status/firNo on success.
+    const reportMissingAndFileEfir = useCallback(async (alertId) => {
+        if (!alertId) return null;
+        const response = await apiClient.post(`/api/safety-alerts/${alertId}/report-missing`);
+        const data = response?.data;
+        if (data?.alert) {
+            setSafetyAlerts(prev => prev.map(a => (a.id === alertId ? { ...a, ...data.alert } : a)));
+        }
+        return data;
+    }, []);
+
     // Trigger refresh across all components
     const triggerRefresh = useCallback(() => {
         setRefreshTrigger(prev => prev + 1);
@@ -162,6 +174,7 @@ export const DataProvider = ({ children }) => {
         fetchPanicAlerts,
         fetchSafetyAlerts,
         fetchTouristByDtid,
+        reportMissingAndFileEfir,
         triggerRefresh,
         notifyNewRegistration
     };

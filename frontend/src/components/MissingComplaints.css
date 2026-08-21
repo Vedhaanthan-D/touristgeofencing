@@ -226,6 +226,13 @@
   background: #10B981;
 }
 
+.slate-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366F1;
+}
+
 /* Actions Right */
 .mc-actions-right {
   display: flex;
@@ -279,6 +286,11 @@
 .mc-efir-card.card-status-missing {
   border-color: #FCD34D;
   box-shadow: 0 6px 20px -3px rgba(245, 158, 11, 0.18);
+}
+
+.mc-efir-card.card-status-pending {
+  border-color: #C7D2FE;
+  box-shadow: 0 6px 20px -3px rgba(99, 102, 241, 0.14);
 }
 
 .mc-efir-card:hover {
@@ -566,6 +578,18 @@
   box-shadow: 0 0 8px #F59E0B;
 }
 
+.pill-pending {
+  color: #4F46E5;
+}
+
+.pill-pending .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6366F1;
+  box-shadow: 0 0 8px #6366F1;
+}
+
 .btn-download-efir {
   background: linear-gradient(135deg, #312E81, #4F46E5);
   color: white;
@@ -585,6 +609,53 @@
 .btn-download-efir:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(79, 70, 229, 0.4);
+}
+
+/* Confirm Missing & File E-FIR action (pending review) */
+.btn-confirm-missing {
+  background: linear-gradient(135deg, #B45309, #D97706);
+  color: white;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-missing:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(217, 119, 6, 0.4);
+}
+
+.btn-confirm-missing:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* Filed E-FIR reference strip */
+.mc-efir-filed-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: #ECFDF5;
+  border-top: 1px solid #A7F3D0;
+  color: #047857;
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+.mc-efir-filed-badge .fir-no {
+  font-family: 'Courier New', monospace;
+  font-weight: 800;
+  color: #065F46;
+  letter-spacing: 0.02em;
 }
 
 /* Empty Card */

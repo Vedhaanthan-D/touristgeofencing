@@ -171,6 +171,9 @@ function generateEFIRPDF(tourist, alert) {
   try {
     const doc = new jsPDF();
 
+    // Prefer the officially filed FIR number persisted on the alert; fall back to a derived one.
+    const firNo = alert?.firNo || `MIS/${alert?.id?.slice(-8)?.toUpperCase() || "N/A"}/${new Date().getFullYear()}`;
+
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 128);
@@ -178,7 +181,7 @@ function generateEFIRPDF(tourist, alert) {
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    doc.text(`FIR No: MIS/${alert?.id?.slice(-8) || "N/A"}/${new Date().getFullYear()}`, 20, 35);
+    doc.text(`FIR No: ${firNo}`, 20, 35);
     doc.text(`Police Station: Cyber Crime/Tourist Missing Cell`, 20, 42);
     doc.text(`Date & Time: ${new Date().toLocaleString("en-IN")}`, 20, 49);
 
@@ -260,7 +263,7 @@ function generateEFIRPDF(tourist, alert) {
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Case Reference: MIS/${alert?.id?.slice(-8) || "N/A"}/${new Date().getFullYear()}`, 20, 35);
+    doc.text(`Case Reference: ${firNo}`, 20, 35);
     doc.text(`Missing Person: ${tourist?.fullName || "N/A"}`, 20, 42);
     doc.text(`DTID: ${tourist?.dtid || "N/A"}`, 20, 49);
 
@@ -288,28 +291,41 @@ function generateEFIRPDF(tourist, alert) {
   }
 }
 
-function TouristCard({ tourist, index, alert }) {
+function TouristCard({ tourist, index, alert, onReportMissing }) {
   const [copied, setCopied] = useState(false);
+  const [filing, setFiling] = useState(false);
 
   const displayTourist = tourist || {
     dtid: alert?.dtid || "N/A",
     fullName: alert?.userId ? "Registered Tourist" : "Unknown Tourist",
     phone: "N/A",
-    isActive: false,
   };
 
-  const isActive = useMemo(() => {
-    if (Object.prototype.hasOwnProperty.call(displayTourist, "isActive")) {
-      return displayTourist.isActive;
-    }
-    const returnDate = displayTourist.returnDate || displayTourist.validTill;
-    if (!returnDate) return false;
-    const currentTime = Math.floor(Date.now() / 1000);
-    return returnDate > currentTime;
-  }, [displayTourist]);
+  // Case status is driven by the alert itself: 'missing' once an officer confirms & files the E-FIR,
+  // otherwise it is a pending idle alert awaiting manual review.
+  const isMissing = alert?.status === "missing";
+  const firNo = alert?.firNo;
 
   const handleDownloadEFIR = () => {
     generateEFIRPDF(displayTourist, alert);
+  };
+
+  const handleConfirmMissing = async () => {
+    if (filing || !alert?.id || typeof onReportMissing !== "function") return;
+    const ok = window.confirm(
+      `Confirm ${displayTourist.fullName || "this tourist"} as MISSING and file an official E-FIR?\n\n` +
+      `This creates a permanent E-FIR record in the system and cannot be undone.`
+    );
+    if (!ok) return;
+    setFiling(true);
+    try {
+      await onReportMissing(alert.id);
+    } catch (err) {
+      console.error("Failed to file E-FIR:", err);
+      window.alert("Failed to file E-FIR. Please try again.");
+    } finally {
+      setFiling(false);
+    }
   };
 
   const handleCopyDtid = (e) => {
@@ -331,7 +347,7 @@ function TouristCard({ tourist, index, alert }) {
   const mapsUrl = lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : null;
 
   return (
-    <div className={`mc-efir-card fade-in ${isActive ? "card-status-active" : "card-status-missing"}`}>
+    <div className={`mc-efir-card fade-in ${isMissing ? "card-status-missing" : "card-status-pending"}`}>
       {/* Header Bar: Row 1 Name + Avatar + Case Tag */}
       <div className="mc-card-top-header">
         <div className="mc-avatar-circle">{initials}</div>
@@ -414,15 +430,28 @@ function TouristCard({ tourist, index, alert }) {
 
       {/* Card Action Footer */}
       <div className="mc-card-footer">
-        <span className={`mc-status-pill ${isActive ? "pill-active" : "pill-missing"}`}>
+        <span className={`mc-status-pill ${isMissing ? "pill-missing" : "pill-pending"}`}>
           <span className="status-dot"></span>
-          {isActive ? "Tracking Active" : "Reported Missing"}
+          {isMissing ? "Reported Missing" : "Pending Review"}
         </span>
 
-        <button className="btn-download-efir" onClick={handleDownloadEFIR}>
-          <FileText size={14} /> Download E-FIR PDF
-        </button>
+        {isMissing ? (
+          <button className="btn-download-efir" onClick={handleDownloadEFIR}>
+            <FileText size={14} /> Download E-FIR PDF
+          </button>
+        ) : (
+          <button className="btn-confirm-missing" onClick={handleConfirmMissing} disabled={filing}>
+            <ShieldAlert size={14} /> {filing ? "Filing E-FIR…" : "Confirm Missing & File E-FIR"}
+          </button>
+        )}
       </div>
+
+      {/* Filed E-FIR reference strip (shown once an E-FIR is on record) */}
+      {isMissing && firNo && (
+        <div className="mc-efir-filed-badge">
+          <Check size={13} /> E-FIR Filed · <span className="fir-no">{firNo}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -435,6 +464,7 @@ export default function MissingComplaints() {
     safetyAlerts: globalSafetyAlerts,
     loadingSafety: loading,
     fetchSafetyAlerts,
+    reportMissingAndFileEfir,
     triggerRefresh
   } = useData();
 
@@ -498,25 +528,18 @@ export default function MissingComplaints() {
   const stats = useMemo(() => {
     let missing = 0;
     items.forEach(a => {
-      const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
-      if (tourist && tourist.isActive === false) missing++;
+      if (a.status === "missing") missing++;
     });
-    return { total: items.length, missing, active: items.length - missing };
-  }, [items, touristByDtid, globalTouristsMap]);
+    return { total: items.length, missing, pending: items.length - missing };
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     let list = items;
 
     if (filterMode === "missing") {
-      list = list.filter(a => {
-        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
-        return tourist && tourist.isActive === false;
-      });
-    } else if (filterMode === "active") {
-      list = list.filter(a => {
-        const tourist = touristByDtid[a.dtid] || globalTouristsMap[a.dtid];
-        return !tourist || tourist.isActive !== false;
-      });
+      list = list.filter(a => a.status === "missing");
+    } else if (filterMode === "pending") {
+      list = list.filter(a => a.status !== "missing");
     }
 
     const q = query.trim().toLowerCase();
@@ -594,10 +617,10 @@ export default function MissingComplaints() {
               <span className="amber-dot"></span> Missing Cases ({stats.missing})
             </button>
             <button
-              className={`filter-pill ${filterMode === "active" ? "active" : ""}`}
-              onClick={() => setFilterMode("active")}
+              className={`filter-pill ${filterMode === "pending" ? "active" : ""}`}
+              onClick={() => setFilterMode("pending")}
             >
-              <span className="green-dot"></span> Active Tracking ({stats.active})
+              <span className="slate-dot"></span> Pending Review ({stats.pending})
             </button>
           </div>
 
@@ -637,6 +660,7 @@ export default function MissingComplaints() {
                 tourist={touristByDtid[a.dtid] || globalTouristsMap[a.dtid]}
                 index={index}
                 alert={a}
+                onReportMissing={reportMissingAndFileEfir}
               />
             ))}
           </div>
