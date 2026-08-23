@@ -341,7 +341,7 @@ function ManageZones() {
                             </span>
                             <h1 className="mz-main-title">Geofenced Restricted Zones</h1>
                             <p className="mz-main-subtitle">
-                                Admin interface for establishing, monitoring, and updating geofence boundary coordinates and alert risk severity levels.
+                                Govt Officials interface for establishing, monitoring, and updating geofence boundary coordinates and alert risk severity levels.
                             </p>
                         </div>
 

@@ -5,7 +5,7 @@ import { auth } from '../config/firebase';
 const AuthContext = createContext(null);
 
 const ROLE_LABELS = {
-    admin: 'Administrator',
+    admin: 'Govt Official',
     police: 'Police Officer',
     forest: 'Forest Officer',
     immigration: 'Immigration Officer'
