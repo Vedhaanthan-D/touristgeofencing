@@ -5,7 +5,7 @@ import { Lock, Mail, ShieldAlert, LogIn, Shield, CheckCircle2 } from 'lucide-rea
 import './Login.css';
 
 const ROLE_LABEL_MAP = {
-    admin: 'Administrator',
+    admin: 'Govt Official',
     police: 'Police Officer',
     forest: 'Forest Officer',
     immigration: 'Immigration Officer'
@@ -117,7 +117,7 @@ export default function Login() {
                 </form>
 
                 <div className="login-admin-notice">
-                    <p>Officer accounts and role access (Police, Forest, Immigration, Admin) are provisioned by your system administrator.</p>
+                    <p>Officer accounts and role access (Police, Forest, Immigration, Govt Officials) are provisioned by your system administrator.</p>
                 </div>
             </div>
         </div>

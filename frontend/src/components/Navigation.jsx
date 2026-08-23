@@ -40,7 +40,7 @@ function Navigation() {
     const getShortRole = (roleKey) => {
         if (!roleKey) return 'Guest';
         const roleMap = {
-            admin: 'Admin',
+            admin: 'Govt Official',
             police: 'Police',
             forest: 'Forest',
             immigration: 'Immigration'

@@ -24,13 +24,13 @@ export default function PendingRole() {
                     <ShieldAlert size={48} className="auth-hero-icon warning-glow" />
                     <h2>Awaiting Authorization</h2>
                     <p>
-                        Your account <strong>{user?.email}</strong> is registered, but no officer role (Police, Forest, Immigration, or Admin) has been assigned to your account yet.
+                        Your account <strong>{user?.email}</strong> is registered, but no officer role (Police, Forest, Immigration, or Govt Official) has been assigned to your account yet.
                     </p>
                 </div>
 
                 <div className="auth-info-box">
                     <p>
-                        Please contact your System Administrator to assign your official role via the admin portal or CLI script.
+                        Please contact your System Administrator to assign your official role via the official portal or CLI script.
                     </p>
                 </div>
 
