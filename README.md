@@ -1,70 +1,257 @@
-You are working on D:\Hoster FInal yr project\touristgeofencing. The web portal (/frontend) is for officials only (Police Officer, Forest Officer, Immigration Officer, Admin) — tourists never use the website. Tourists only use a separate mobile app, authenticating with email + DTID. Implement role-based access control end-to-end, fix the Firestore rules to match the real data model, and wire up SOS/idle alerts to the portal correctly. Do not touch the Dashboard's Google Maps iframe/geofence map section — leave it exactly as is.
+# Praesidia: Intelligent Tourist Safety & Emergency Management Portal
 
-1. Officials have no roles today — everyone with any valid login sees everything
+[![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Express](https://img.shields.io/badge/Express-v5.1-000000?style=flat&logo=express&logoColor=white)](https://expressjs.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-v13+-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Vite](https://img.shields.io/badge/Vite-v7-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Problem: authenticateToken middleware only checks that a Firebase ID token is valid, not who the person is. Any authenticated account can hit every route and see every page. There's no concept of Police / Forest / Immigration / Admin anywhere in the code.
+> **Praesidia** is an enterprise-grade, proactive tourist safety and emergency response web portal and backend API service. Designed specifically for high-risk, forest, remote, and ecologically sensitive tourist destinations, Praesidia equips government officials (Police Officers, Forest Officials, Immigration Officers, and Platform Administrators) with real-time geo-spatial monitoring, deterministic idle anomaly detection, dynamic geofence management, and automated Electronic First Information Report (E-FIR) generation.
 
-Solution: Introduce Firebase Auth custom claims (role: 'admin' | 'police' | 'forest' | 'immigration') as the single source of truth for permissions, checked both server-side (Express middleware) and in Firestore rules.
+---
 
-Approach:
+## 📑 Table of Contents
 
-Add a backend/scripts/setUserRole.js one-off CLI script (run manually via node scripts/setUserRole.js <email> <role>) that calls admin.auth().getUserByEmail(email) then admin.auth().setCustomUserClaims(uid, { role }). This is how you'll create your first Police/Forest/Immigration/Admin officer accounts — document this clearly in the README since there's no self-serve signup.
-Add a protected POST /api/admin/set-role route, restricted to role === 'admin' only, so an Admin can promote/create other officer roles from within the app later instead of always needing console/CLI access.
-Custom claims only refresh on the client after a token refresh — after setting a role, the affected user must sign out/in (or call getIdToken(true)) before the new role is visible.
-2. Backend routes aren't role-restricted
+- [Executive Summary](#-executive-summary)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Role-Based Access Control (RBAC) Matrix](#-role-based-access-control-rbac-matrix)
+- [Repository Structure](#-repository-structure)
+- [Prerequisites](#-prerequisites)
+- [Environment Configuration](#-environment-configuration)
+- [Getting Started](#-getting-started)
+- [Provisioning Official Accounts](#-provisioning-official-accounts)
+- [API Endpoints Overview](#-api-endpoints-overview)
+- [Firestore Security Rules](#-firestore-security-rules)
+- [Authors & Acknowledgments](#-authors--acknowledgments)
 
-Problem: /api/register, /api/tourists, /api/panic-alerts, /api/safety-alerts all just check "is this a valid token," not "does this role allow this action." As specified, Immigration Officers should be able to register tourists but must NOT see the dashboard/tourist list/alerts; Police and Forest Officers should monitor but not necessarily register.
+---
 
-Solution: Add a requireRole(...allowedRoles) middleware factory, applied per route based on this permission matrix:
+## 📌 Executive Summary
 
-Route	admin	police	forest	immigration
-POST /api/register	✅	❌	❌	✅
-GET /api/tourists, /api/tourists/:dtid	✅	✅	✅	❌
-GET /api/panic-alerts	✅	✅	✅	❌
-GET /api/safety-alerts	✅	✅	✅	❌
-POST /api/admin/set-role	✅	❌	❌	❌
+Tourist safety in remote and forested regions relies heavily on manual check-ins and phone-based SOS alerts. If a tourist becomes lost, incapacitated, or enters an unmapped high-risk zone without cellular network access, emergency response times degrade significantly.
 
-Approach:
+**Praesidia** solves this through a multi-tier safety architecture:
+1. **Digital Tourist Identity (DTID):** Secure UUIDv4 identifier linked to a privacy-preserving HMAC-SHA256 hashed Aadhaar key—zero plain-text identity storage in database collections.
+2. **Deterministic Geofencing Engine:** Real-time Point-in-Polygon (Ray-Casting) spatial boundary monitoring.
+3. **Stay-Point Idle Anomaly Detector:** Bounding-box and sliding-centroid distance checking to filter canopy-induced GPS jitter while catching true missing-person conditions.
+4. **Role-Gated Authority Web Portal:** Dedicated React web interface tailored strictly for authorized law enforcement and government agencies.
+5. **Automated E-FIR Pipeline:** Immediate legal case registration (`MIS/ALERT_ID/YEAR`) for unacknowledged critical safety incidents.
 
-js
-const requireRole = (...roles) => (req, res, next) => {
-    if (!req.user?.role || !roles.includes(req.user.role)) {
-        return res.status(403).json({ error: 'Insufficient permissions for this action.' });
-    }
-    next();
-};
+---
 
-Chain it after authenticateToken on each route, e.g. app.post('/api/register', authenticateToken, requireRole('admin','immigration'), registerRateLimiter, validateRegistration, ...). Note: this means /api/register is no longer public — it now requires an authenticated Immigration/Admin officer to submit it on the tourist's behalf at check-in. Update Registration.jsx accordingly (it needs to be wrapped in ProtectedRoute and send the officer's auth token like every other page).
+## ✨ Key Features
 
-3. Tourist mobile app has no login mechanism (email + DTID), and reintroducing DTID-as-password would reopen the exact vulnerability already fixed
+- 🛡️ **Defense-in-Depth RBAC:** Access rights strictly governed at three layers (Express API Middleware, Firestore Database Rules, and React Route Guards).
+- 📍 **Dynamic Geofence Polygon Management:** Administrators can visually construct and modify low, medium, and high-risk restricted zone polygons on interactive satellite maps.
+- 🚨 **Real-Time SOS & Panic Incident Triage:** Live Firestore stream integration pushes manual SOS alerts and automatic geofence/idle breaches instantly to police and forest dashboards.
+- 🆔 **Immigration Tourist Check-In Registration:** Secure portal workflow enabling Immigration/Admin officers to onboard visiting tourists and issue Digital Tourist ID passes.
+- 📑 **Automated E-FIR PDF Generation:** Instant generation of pre-populated emergency reports featuring tourist itinerary data, emergency contact details, and historical GPS centroid coordinates.
 
-Problem: You previously (correctly) removed DTID as the Firebase Auth password because it's printed publicly on the pass/QR code — anyone who sees it could log in as that tourist. But the mobile app still needs an email+DTID login flow, and right now there's no backend support for it at all.
+---
 
-Solution: Don't use DTID as a reusable Firebase Auth password. Instead, treat DTID like a boarding-pass/ticket ID: the backend verifies email+DTID match a real record, then issues a short-lived, narrowly-scoped Firebase custom token for that specific tourist — not a standing password anyone could reuse to log in repeatedly at will without re-verification each time, and scoped so it can only ever act as that one DTID.
+## 🏗 System Architecture
 
-Approach:
+```
+                                  +---------------------------------------+
+                                  |    Tourist Mobile App (Flutter)       |
+                                  +-------------------+-------------------+
+                                                      |
+                                                      | GPS Telemetry & SOS
+                                                      v
++-----------------------------------------------------+-----------------------------------------------------+
+|                                          FIREBASE INFRASTRUCTURE                                         |
+|                                                                                                           |
+|  +-----------------------------------+    +----------------------------------+    +--------------------+  |
+|  |     Firebase Authentication       |    |         Cloud Firestore          |    |  Cloud Messaging   |  |
+|  | (Custom Claims: role, dtid)       |    | (Real-time Live Operational DB)  |    |  (Push Alerts)     |  |
+|  +-----------------+-----------------+    +----------------+-----------------+    +---------+----------+  |
++--------------------|---------------------------------------|--------------------------------|-------------+
+                     |                                       |                                |
+                     | ID Tokens & Claims                    | Live Listeners & Data          | Notifications
+                     v                                       v                                v
++--------------------+---------------------------------------+--------------------------------+-------------+
+|                                    PRAESIDIA AUTHORITY WEB PORTAL                                         |
+|                                                                                                           |
+|   +------------------------------------+                +---------------------------------------------+   |
+|   |         Express REST API           |                |             React Web Dashboard             |   |
+|   |  - Role Middlewares (Zod Validated)|                |  - Ocean-Travel Glassmorphism Design Theme  |   |
+|   |  - HMAC-SHA256 DTID Generator      |                |  - Interactive Map & Polygon Geofencing     |   |
+|   |  - Auto E-FIR Incident Pipeline    |                |  - Role-gated Route Views (AuthContext)     |   |
+|   +------------------------------------+                +---------------------------------------------+   |
++-----------------------------------------------------------------------------------------------------------+
+```
 
-Add POST /api/tourist-login (public, but rate-limited hard — e.g. 5 attempts per IP per 15 min via express-rate-limit) that:
-Looks up the tourist by dtid in Firestore.
-Confirms email matches (case-insensitive) — reuse the existing /api/is-active logic as a base.
-If it matches, calls admin.auth().createCustomToken(firebaseUid, { role: 'tourist', dtid }) and returns the custom token to the app.
-The mobile app then calls Firebase Auth's signInWithCustomToken() with that token — this session is short-lived (1 hour by default) and must be reissued the same way for a new session; it's not a permanent password.
-Ensure every tourist created in /api/register still gets a corresponding Firebase Auth UID (already happens today) so createCustomToken has something to attach to.
-Log every tourist-login attempt (success/fail) server-side for audit purposes, since this is now an identity-verification endpoint.
-4. Firestore rules don't match the real field names, and roles/ownership aren't enforced at the database layer
+---
 
-Problem: Your current rules check request.resource.data.userId == request.auth.uid, but the app writes/reads alerts by dtid, not userId. Reads on tourists/panic_alert_emergencies/safety_alerts are open to any authenticated user, not just the intended roles, and there's no admin custom claim being set anywhere yet (fixed in #1) so request.auth.token.admin == true currently matches nobody.
+## 🔐 Role-Based Access Control (RBAC) Matrix
 
-Solution: Rewrite the rules to check request.auth.token.role against the matrix above, and to validate dtid ownership using the dtid custom claim issued in #3 for tourist writes.
+Praesidia enforces strict operational separation of duty:
 
-Approach:
+| Endpoint / Feature Scope | Administrator | Police Officer | Forest Officer | Immigration Officer |
+| :--- | :---: | :---: | :---: | :---: |
+| **Register New Tourist (`/api/register`)** | ✅ | ❌ | ❌ | ✅ |
+| **View Tourist Registry (`/api/tourists`)** | ✅ | ✅ | ✅ | ❌ |
+| **Manage Restricted Zones (`/api/restricted-zones`)** | ✅ | ❌ | ❌ | ❌ |
+| **View Restricted Zones** | ✅ | ✅ | ✅ | ❌ |
+| **Real-Time SOS & Idle Incident Queue** | ✅ | ✅ | ✅ | ❌ |
+| **Escalate Incident & File E-FIR** | ✅ | ✅ | ✅ | ❌ |
+| **Assign Officer Roles (`/api/admin/set-role`)** | ✅ | ❌ | ❌ | ❌ |
 
+---
+
+## 📁 Repository Structure
+
+```
+touristgeofencing/
+├── backend/
+│   ├── firebase-config.js      # Firebase Admin SDK initialization & credentials setup
+│   ├── index.js                # Express app entry point & REST route definitions
+│   ├── middleware/
+│   │   ├── authenticateToken.js # Firebase ID Token verification middleware
+│   │   └── requireRole.js       # Express RBAC role validation middleware
+│   ├── models/                 # Data schema validators (Zod) & helpers
+│   ├── scripts/
+│   │   └── setUserRole.js      # CLI utility to provision Custom User Claims for officers
+│   ├── package.json
+│   └── .env.example
+├── frontend/
+│   ├── public/                 # Static brand assets & logos
+│   ├── src/
+│   │   ├── components/         # Reusable glassmorphic UI components (Navbar, Cards, Alerts)
+│   │   ├── context/            # AuthContext & DataContext state providers
+│   │   ├── pages/              # Role-gated views (Dashboard, PanicAlerts, Registration, etc.)
+│   │   ├── App.jsx             # Main router configuration & protected routes
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── .env.example
+├── README.md
+└── firestore.rules             # Production security rules for Cloud Firestore
+```
+
+---
+
+## ⚙️ Prerequisites
+
+Before running the project locally, ensure you have the following installed:
+
+- **Node.js**: `v18.x` or later
+- **npm**: `v9.x` or later
+- **Firebase Project**: An active Firebase project with **Firebase Authentication** and **Cloud Firestore** enabled.
+- **Firebase Service Account Credentials**: Private key JSON file generated from Firebase Console (`Project Settings -> Service Accounts`).
+
+---
+
+## 🌐 Environment Configuration
+
+### 1. Backend Environment Setup (`backend/.env`)
+
+Create a `.env` file inside the `backend/` directory:
+
+```env
+PORT=5000
+NODE_ENV=development
+
+# HMAC Identity Salt (Required for Aadhaar DTID hashing)
+HMAC_SECRET_KEY=your_super_secret_hmac_salt_key_here
+
+# Firebase Admin Service Account Configuration
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-firebase-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
+```
+
+### 2. Frontend Environment Setup (`frontend/.env`)
+
+Create a `.env` file inside the `frontend/` directory:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+
+# Firebase Web App SDK Configuration
+VITE_FIREBASE_API_KEY=your_firebase_web_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-firebase-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-firebase-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-firebase-project-id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install Backend Dependencies & Start Server
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+The REST API server will launch at `http://localhost:5000`.
+
+### 2. Install Frontend Dependencies & Start Dashboard
+
+Open a new terminal window:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The web portal application will launch at `http://localhost:5173`.
+
+---
+
+## 👤 Provisioning Official Accounts
+
+Official accounts (Police, Forest, Immigration, Admin) cannot self-register. To provision official accounts:
+
+1. Create the user's email & password in the **Firebase Console** (`Authentication -> Users -> Add User`).
+2. Run the manual role assignment script from the `backend` directory:
+
+```bash
+cd backend
+node scripts/setUserRole.js officer@police.gov.in police
+```
+
+Supported role options: `admin`, `police`, `forest`, `immigration`.
+
+---
+
+## 🔌 API Endpoints Overview
+
+| Method | Endpoint | Allowed Roles | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/tourist-login` | Public | Validates Email + DTID and returns short-lived custom token |
+| `POST` | `/api/register` | Admin, Immigration | Registers tourist, hashes Aadhaar, issues Digital Tourist ID (DTID) |
+| `GET` | `/api/tourists` | Admin, Police, Forest | Retrieves registered tourist registry |
+| `GET` | `/api/panic-alerts` | Admin, Police, Forest | Retrieves active panic button emergency records |
+| `GET` | `/api/safety-alerts` | Admin, Police, Forest | Retrieves automated geofence/idle safety breach alerts |
+| `POST` | `/api/safety-alerts/:id/report-missing` | Admin, Police, Forest | Escalates alert to missing complaint and auto-generates E-FIR |
+| `POST` | `/api/admin/set-role` | Admin | Admin endpoint to set/update custom claims for official accounts |
+
+---
+
+## 🔒 Firestore Security Rules
+
+Deploy the included `firestore.rules` file to enforce database-level authorization:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isOfficial() {
-      return request.auth != null &&
+      return request.auth != null && 
              request.auth.token.role in ['admin', 'police', 'forest'];
     }
 
@@ -73,17 +260,12 @@ service cloud.firestore {
     }
 
     match /tourists/{dtid} {
-      // Officials (not immigration) can read tourist records for monitoring
       allow read: if isOfficial();
-      // Only the backend Admin SDK writes tourist records (bypasses rules) —
-      // no direct client writes at all, immigration officers go through the API
-      allow write: if false;
+      allow write: if false; // Writes strictly executed via Backend Admin SDK
     }
 
     match /panic_alert_emergencies/{docId} {
       allow read: if isOfficial();
-      // Only the authenticated tourist (via their scoped custom token) can create
-      // an alert, and only under their own dtid
       allow create: if request.auth != null &&
                        request.auth.token.role == 'tourist' &&
                        request.resource.data.dtid == request.auth.token.dtid;
@@ -99,184 +281,20 @@ service cloud.firestore {
     }
 
     match /restricted_zones/{docId} {
-      allow read: if request.auth != null; // any authenticated role can view zones
-      allow write: if isAdmin(); // only Admin manages zone data
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }
+```
 
-Deploy with firebase deploy --only firestore:rules and verify in the Firebase console's Rules Playground that: a tourist-role token can create an alert with a matching dtid but not read tourists; a police/forest/admin token can read everything but not create alerts; an immigration token can do neither (it only ever talks to /api/register through the backend).
+---
 
-5. Officials need to see role-appropriate data — currently the frontend has no concept of role at all
+## 👥 Authors & Acknowledgments
 
-Problem: Navigation.jsx shows every link to every logged-in user regardless of role, and no page checks whether the current officer is even allowed to be there.
+**Development Team:**
+- **Vedhaanthan D** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
+- **Kamalesh K** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
+- **Sugunthan J** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
 
-Solution: Extend AuthContext to expose the decoded role claim, and gate both navigation links and routes by role.
-
-Approach:
-
-In AuthContext.jsx, after onAuthStateChanged fires, call currentUser.getIdTokenResult() and store role: idTokenResult.claims.role || null in context state alongside user.
-In Navigation.jsx, filter navItems by role before rendering: Immigration sees only "Register"; Police/Forest/Admin see "Dashboard," "Tourist List," "Panic Alerts," "Missing," but not necessarily "Register" (or show it read-only/disabled — your call, but keep Immigration's access minimal as specified).
-Extend ProtectedRoute.jsx to accept an allowedRoles prop, e.g. <ProtectedRoute allowedRoles={['admin','police','forest']}><Dashboard /></ProtectedRoute>, and <ProtectedRoute allowedRoles={['admin','immigration']}><Registration /></ProtectedRoute>. Redirect to an "Access Denied" or back to their allowed home page if the role doesn't match, rather than showing a blank/broken page.
-Add a small role badge next to the officer's name/logout button in Navigation.jsx (e.g. "Police Officer" / "Forest Officer" / "Immigration Officer" / "Admin") so it's always clear which role is signed in.
-6. SOS/idle alerts need to reliably surface in the web portal for the right roles only
-
-Problem: SOSToast.jsx is mounted globally in App.jsx, outside ProtectedRoute, so it tries to run its onSnapshot listeners even on /login and for Immigration Officers who shouldn't be seeing panic/safety data at all per the role matrix.
-
-Solution: Only mount the alert listeners for roles that are supposed to monitor alerts (admin, police, forest), and only once a session with that role exists.
-
-Approach:
-
-Move <SOSToast /> out of the top-level App.jsx and into a wrapper that only renders inside the authenticated layout for allowed roles — e.g. render it conditionally based on const { role } = useAuth(); if (!['admin','police','forest'].includes(role)) return null; at the top of SOSToast.jsx itself, so it simply doesn't subscribe to anything for Immigration Officers or logged-out visitors.
-Since Firestore rules now correctly scope panic_alert_emergencies/safety_alerts reads to isOfficial(), this also means the listener will only succeed for the right roles — the frontend check above is a UX/perf optimization on top of the rules doing the actual enforcement.
-No change needed to how Dashboard.jsx/PanicAlerts.jsx/MissingComplaints.jsx consume DataContext — they'll keep working as-is once the officer's role is admin/police/forest, since DataContext already gates its fetch on user being present; extend that same useEffect guard to also check ['admin','police','forest'].includes(role) before calling fetchTourists/fetchPanicAlerts/fetchSafetyAlerts.
-7. Explicit — do not touch the map
-
-Problem: N/A — just a constraint.
-
-Solution: Leave the <iframe> Google Maps embed block in Dashboard.jsx (db-map-card / db-map-container) completely untouched — same src, same static center, same styling. No geofencing, zone-plotting, or live-location work in this pass.
-
-Verification checklist before calling this done
-A brand-new officer account with no custom claim set cannot access any protected route (should be redirected/denied, not shown a broken page).
-An Immigration-role account can reach /register and successfully submit POST /api/register, but gets 403 from /api/tourists, /api/panic-alerts, /api/safety-alerts.
-A Police/Forest/Admin account can view Dashboard, Tourist List, Panic Alerts, Missing Complaints, and sees SOS/idle toasts appear in real time when a new alert document is created.
-A simulated tourist custom-token session (via /api/tourist-login) can successfully create a document in panic_alert_emergencies/safety_alerts with its own dtid, but is rejected by Firestore rules if it tries to write a different dtid or read the tourists collection.
-The Dashboard map iframe is pixel-identical to before this change.
-
-just now can implment login alone role based
-and chnage the login ui more good lookaccord to our theme for this alone give prompt
-
-Read Multiple Files
-Read Multiple Files
-
-Good — theme is a blue/cyan "ocean travel" glassmorphism look (
-#2563EB → 
-#06B6D4 gradients, dark slate glass cards). Here's the focused prompt for role-based login + a themed UI upgrade only.
-
-PROMPT:
-
-You are working on D:\Hoster FInal yr project\touristgeofencing. Implement role-based login only — do not touch registration flow, alerts, Firestore rules for tourists collection beyond what's needed for roles, or the Dashboard map. The app's visual theme is an "ocean travel" glassmorphism style: primary gradient #2563EB → #06B6D4, dark slate glass cards (rgba(30,41,59,0.7) with backdrop-filter: blur), light text on dark glass (
-#f8fafc headings, 
-#94a3b8/
-#cbd5e1 secondary text), rounded 10-16px corners, soft blue glow shadows. Match this exactly — don't introduce a new color palette.
-
-1. No roles exist for officials today
-
-Problem: Every logged-in account is treated identically. There's no Forest Officer / Police Officer / Immigration Officer / Admin distinction anywhere — AuthContext, ProtectedRoute, and the backend all only check "is there a valid token," never "what role does this person have."
-
-Solution: Use Firebase Auth custom claims (role: 'admin' | 'police' | 'forest' | 'immigration') as the single source of truth, read on both the frontend and backend.
-
-Approach:
-
-Create backend/scripts/setUserRole.js, a manual CLI script:
-js
-  require('dotenv').config();
-  const { admin } = require('../firebase-config');
-  const [,, email, role] = process.argv;
-  const VALID_ROLES = ['admin', 'police', 'forest', 'immigration'];
-  (async () => {
-      if (!email || !VALID_ROLES.includes(role)) {
-          console.error('Usage: node setUserRole.js <email> <admin|police|forest|immigration>');
-          process.exit(1);
-      }
-      const user = await admin.auth().getUserByEmail(email);
-      await admin.auth().setCustomUserClaims(user.uid, { role });
-      console.log(`✅ ${email} is now role: ${role}`);
-      process.exit(0);
-  })();
-This is how you'll create the first officer accounts (create the user in Firebase Console → Authentication, then run this script to assign their role). Document this in the README.
-In backend/middleware/authenticateToken.js, after verifyIdToken, also pull decodedUser.role onto req.user.role (custom claims come back automatically inside the decoded token, no extra call needed).
-Add backend/middleware/requireRole.js:
-js
-  const requireRole = (...roles) => (req, res, next) => {
-      if (!req.user?.role || !roles.includes(req.user.role)) {
-          return res.status(403).json({ error: 'Your role does not have access to this resource.' });
-      }
-      next();
-  };
-  module.exports = requireRole;
-
-Don't wire this into every route yet in this pass — just build the middleware and apply it to a placeholder GET /api/whoami route (returns { email, role }) so the frontend has something to verify login/role against immediately after sign-in.
-
-2. Frontend has no awareness of role at all
-
-Problem: AuthContext.jsx only stores the Firebase user object — not their role — so no page or nav link can adapt based on who's logged in.
-
-Solution: Decode the role custom claim on sign-in and expose it through useAuth().
-
-Approach:
-
-In AuthContext.jsx, inside the onAuthStateChanged callback, after setUser(currentUser), if currentUser exists call currentUser.getIdTokenResult() and store role: idTokenResult.claims.role || null in a new role state field.
-Also expose a roleLabel map for display purposes:
-js
-  const ROLE_LABELS = {
-      admin: 'Administrator',
-      police: 'Police Officer',
-      forest: 'Forest Officer',
-      immigration: 'Immigration Officer'
-  };
-Return { user, role, roleLabel: ROLE_LABELS[role] || null, loading, login, logout } from the context.
-If a signed-in user has no role claim set (e.g. account created but setUserRole.js never run for them), treat them as unauthorized: ProtectedRoute should redirect them to a clear "Account pending role assignment — contact your administrator" screen rather than a blank/broken page.
-3. Routes aren't gated by role yet
-
-Problem: ProtectedRoute.jsx only checks if (!user), so any authenticated account — regardless of role — can reach every page.
-
-Solution: Extend ProtectedRoute to optionally accept an allowed-roles list, and apply it per route once roles exist. (Keep this minimal for now — just build the capability; which exact roles get which pages was already specified in the earlier plan and can be wired in next.)
-
-Approach:
-
-jsx
-export default function ProtectedRoute({ children, allowedRoles }) {
-    const { user, role, loading } = useAuth();
-    const location = useLocation();
-
-    if (loading) return <div className="session-loading">Loading session...</div>;
-    if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-    if (!role) return <Navigate to="/pending-role" replace />;
-    if (allowedRoles && !allowedRoles.includes(role)) {
-        return <Navigate to="/unauthorized" replace />;
-    }
-    return children;
-}
-
-Add two new lightweight route components/pages styled to match the theme: PendingRole.jsx ("Your account is awaiting role assignment") and Unauthorized.jsx ("You don't have access to this page"), both using the same glass-card look as Login.jsx. Don't apply allowedRoles to existing routes in App.jsx yet in this pass — just make the mechanism ready.
-
-4. Login UI doesn't reflect who's signing in or show role after login
-
-Problem: Login.jsx is a generic "Official Portal Access" form with no indication of role, and Navigation.jsx's logout button just shows a generic user icon with an email tooltip — no role badge anywhere.
-
-Solution: Redesign Login.jsx to visually match the app's ocean-travel theme more richly (currently reasonable but plain), and surface the officer's role clearly once logged in.
-
-Approach — Login.jsx redesign:
-
-Wrap the existing card in a full-bleed themed background: reuse the app's signature gradient (linear-gradient(135deg, rgba(37,99,235,0.95), rgba(6,182,212,0.9))) as a soft animated backdrop behind the glass card (e.g. large blurred gradient blobs positioned absolutely, low opacity, subtle float animation) — matching the header gradient already used elsewhere in the app, so the login page doesn't feel like a disconnected plain screen.
-Add a shield/badge icon header consistent with the brand mark used in Navigation.jsx (reuse Logo.png or a shield icon) above "Official Portal Access," so it's recognizably part of the same product.
-Below the password field, add a role preview chip that appears after a successful login but before redirect — e.g. a brief "Signed in as Police Officer" toast/badge using the role's label, styled as a pill with the theme's blue-cyan gradient, giving the officer clear confirmation of which role/permissions they now have.
-Keep the existing input styling (icon-prefixed inputs, focus glow, gradient submit button) — it already matches the theme well — but tighten the card's vertical rhythm and add a subtle divider-separated "role" line under the officer's email once authenticated, for use in Navigation.jsx too (see below).
-Update the "Note: Officer/Admin accounts must be created manually via Firebase Console" text to also mention role assignment: "Officer accounts and role access (Police, Forest, Immigration, Admin) are provisioned by your system administrator."
-
-Approach — Navigation.jsx role badge:
-
-Replace the plain logout button's tooltip-only email display with a small always-visible role pill next to the user's name, using role-specific accent colors within the same palette family (e.g. Police → blue 
-#2563EB, Forest → teal/cyan 
-#06B6D4, Immigration → indigo 
-#4F46E5, Admin → a slightly warmer gold-blue 
-#F59E0B accent used sparingly) so officers can tell at a glance which role is active, especially useful if the same officer manages multiple accounts.
-Example structure:
-jsx
-  {user && (
-      <div className="nav-user-badge">
-          <span className="nav-user-email">{user.email}</span>
-          <span className={`nav-role-pill role-${role}`}>{roleLabel}</span>
-      </div>
-  )}
-
-Style .nav-role-pill as a small rounded pill (border-radius: 999px, font-size: 0.7rem, font-weight: 600, padding: 0.2rem 0.65rem) with a translucent background tinted to the role's accent color, consistent with how status chips (db-status-chip, tl-status-chip) are already styled elsewhere in the codebase — reuse that same chip pattern rather than inventing a new visual language.
-
-Verification checklist
-Running node scripts/setUserRole.js someone@example.com police successfully sets the claim, confirmed by that user's getIdTokenResult() returning role: 'police' after re-login.
-GET /api/whoami returns the correct email + role for a signed-in officer, and 403s cleanly if requireRole is tested against a route it doesn't match.
-A signed-in user with no role claim lands on the "pending role" screen, not a blank page.
-Login page visually reads as part of the same product as the rest of the app — same gradient family, same glass-card language, no new colors introduced.
-Role pill appears correctly in the navigation bar immediately after login and updates correctly on logout.
-Dashboard map iframe, registration flow, and existing Firestore rules for alerts remain completely untouched by this pass.
+**Institution:** Department of Artificial Intelligence and Data Science, K. S. Rangasamy College of Technology, Tiruchengode, India.
