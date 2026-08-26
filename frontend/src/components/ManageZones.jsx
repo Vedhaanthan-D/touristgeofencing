@@ -5,10 +5,9 @@ import {
     Search, LayoutGrid, Table as TableIcon, ExternalLink, Filter
 } from 'lucide-react';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
-import './ManageZones.css';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = API_BASE_URL;
 
 function ManageZones() {
     const [zones, setZones] = useState([]);
