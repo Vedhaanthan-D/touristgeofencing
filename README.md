@@ -293,8 +293,5 @@ service cloud.firestore {
 ## 👥 Authors & Acknowledgments
 
 **Development Team:**
-- **Vedhaanthan D** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
-- **Kamalesh K** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
-- **Sugunthan J** – Department of Artificial Intelligence & Data Science, K. S. Rangasamy College of Technology
-
-**Institution:** Department of Artificial Intelligence and Data Science, K. S. Rangasamy College of Technology, Tiruchengode, India.
+- **Vedhaanthan D**
+- **Kamalesh K**
