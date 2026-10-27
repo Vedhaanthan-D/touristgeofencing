@@ -5,7 +5,9 @@ import {
     Search, LayoutGrid, Table as TableIcon, ExternalLink, Filter
 } from 'lucide-react';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { API_BASE_URL } from '../config/api';
+import { auth, db } from '../config/firebase';
+import { apiClient, API_BASE_URL } from '../config/api';
+import './ManageZones.css';
 
 const API_BASE = API_BASE_URL;
 
@@ -36,13 +38,17 @@ function ManageZones() {
     });
 
     const getAuthHeader = async () => {
-        const currentUser = auth.currentUser;
-        if (!currentUser) throw new Error('Not authenticated');
-        const token = await currentUser.getIdToken();
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
+        const currentUser = auth?.currentUser;
+        if (!currentUser) return { 'Content-Type': 'application/json' };
+        try {
+            const token = await currentUser.getIdToken();
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        } catch {
+            return { 'Content-Type': 'application/json' };
+        }
     };
 
     const fetchZones = async () => {
@@ -59,17 +65,12 @@ function ManageZones() {
         } catch (firestoreErr) {
             console.warn('Firestore direct fetch issue, trying backend API fallback...', firestoreErr);
             try {
-                const headers = await getAuthHeader();
-                const res = await fetch(`${API_BASE}/api/restricted-zones`, { headers });
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error || 'Failed to fetch geofenced zones');
-                }
-                const data = await res.json();
-                setZones(data);
+                const res = await apiClient.get('/api/restricted-zones');
+                setZones(Array.isArray(res.data) ? res.data : []);
             } catch (err) {
                 console.error('Error fetching zones:', err);
-                setError(err.message || 'Failed to load restricted zones');
+                const errMsg = err.response?.data?.error || err.message || 'Failed to load restricted zones';
+                setError(errMsg);
             }
         } finally {
             setLoading(false);
@@ -243,7 +244,6 @@ function ManageZones() {
         } catch (firestoreErr) {
             console.warn('Firestore direct write failed, trying backend API fallback...', firestoreErr);
             try {
-                const headers = await getAuthHeader();
                 const payload = {
                     name: formData.name.trim(),
                     description: formData.description.trim(),
@@ -251,24 +251,10 @@ function ManageZones() {
                     polygon: validPolygon
                 };
 
-                let response;
                 if (editingZoneId) {
-                    response = await fetch(`${API_BASE}/api/restricted-zones/${editingZoneId}`, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify(payload)
-                    });
+                    await apiClient.put(`/api/restricted-zones/${editingZoneId}`, payload);
                 } else {
-                    response = await fetch(`${API_BASE}/api/restricted-zones`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(payload)
-                    });
-                }
-
-                if (!response.ok) {
-                    const resData = await response.json().catch(() => ({}));
-                    throw new Error(resData.error || 'Failed to save geofenced zone');
+                    await apiClient.post('/api/restricted-zones', payload);
                 }
 
                 setSuccessMsg(editingZoneId ? 'Geofenced zone updated successfully!' : 'Geofenced zone created successfully!');
@@ -276,7 +262,8 @@ function ManageZones() {
                 fetchZones();
             } catch (err) {
                 console.error('Submit error:', err);
-                setError(err.message || 'Failed to save restricted zone');
+                const errMsg = err.response?.data?.error || err.message || 'Failed to save restricted zone';
+                setError(errMsg);
             }
         } finally {
             setActionLoading(false);
@@ -296,22 +283,13 @@ function ManageZones() {
         } catch (firestoreErr) {
             console.warn('Firestore direct delete failed, trying backend API fallback...', firestoreErr);
             try {
-                const headers = await getAuthHeader();
-                const res = await fetch(`${API_BASE}/api/restricted-zones/${zoneId}`, {
-                    method: 'DELETE',
-                    headers
-                });
-
-                if (!res.ok) {
-                    const resData = await res.json().catch(() => ({}));
-                    throw new Error(resData.error || 'Failed to delete restricted zone');
-                }
-
+                await apiClient.delete(`/api/restricted-zones/${zoneId}`);
                 setSuccessMsg(`Zone "${zoneName}" deleted successfully.`);
                 fetchZones();
             } catch (err) {
                 console.error('Delete error:', err);
-                setError(err.message || 'Failed to delete zone');
+                const errMsg = err.response?.data?.error || err.message || 'Failed to delete zone';
+                setError(errMsg);
             }
         } finally {
             setActionLoading(false);
